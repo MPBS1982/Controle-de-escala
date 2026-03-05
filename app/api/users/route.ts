@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server';
-import { db, initDb } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-initDb();
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
-  const allUsers = db.select({
-    id: users.id,
-    name: users.name,
-    isMaster: users.isMaster
-  }).from(users).all();
-  return NextResponse.json(allUsers);
+  const { data: allUsers, error } = await supabase
+    .from('users')
+    .select('id, name, is_master');
+  
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  
+  const formattedUsers = allUsers.map((u: any) => ({
+    id: u.id,
+    name: u.name,
+    isMaster: u.is_master
+  }));
+
+  return NextResponse.json(formattedUsers);
 }
 
 export async function POST(request: Request) {
@@ -19,16 +22,29 @@ export async function POST(request: Request) {
   const data = {
     name: body.name,
     password: body.password,
-    isMaster: body.isMaster || false
+    is_master: body.isMaster || false
   };
 
   if (body.id) {
-    db.update(users).set(data).where(eq(users.id, body.id)).run();
-    return NextResponse.json({ id: body.id, name: data.name, isMaster: data.isMaster });
+    const { data: updated, error } = await supabase
+      .from('users')
+      .update(data)
+      .eq('id', body.id)
+      .select()
+      .single();
+    
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ id: updated.id, name: updated.name, isMaster: updated.is_master });
   }
 
-  const result = db.insert(users).values(data).returning().get();
-  return NextResponse.json({ id: result.id, name: result.name, isMaster: result.isMaster });
+  const { data: inserted, error } = await supabase
+    .from('users')
+    .insert(data)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ id: inserted.id, name: inserted.name, isMaster: inserted.is_master });
 }
 
 export async function DELETE(request: Request) {
@@ -36,6 +52,8 @@ export async function DELETE(request: Request) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
   
-  db.delete(users).where(eq(users.id, parseInt(id))).run();
+  const { error } = await supabase.from('users').delete().eq('id', parseInt(id));
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  
   return NextResponse.json({ success: true });
 }

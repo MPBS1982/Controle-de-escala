@@ -59,6 +59,11 @@ export function initDb() {
       date TEXT NOT NULL,
       status TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS special_schedule_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      special_schedule_id INTEGER NOT NULL REFERENCES special_schedules(id),
+      employee_id INTEGER NOT NULL REFERENCES employees(id)
+    );
   `);
 
   // Migration: Add role_id to employees if it doesn't exist
@@ -183,6 +188,19 @@ export function initDb() {
       ];
       for (const item of initialSpecials) {
         db.insert(schema.specialSchedules).values(item).run();
+      }
+
+      // Seed assignments
+      const allSpecials = db.select().from(schema.specialSchedules).all();
+      const allEmployees = db.select().from(schema.employees).limit(5).all();
+      
+      if (allSpecials.length > 0 && allEmployees.length > 0) {
+        for (const emp of allEmployees) {
+          db.insert(schema.specialScheduleAssignments).values({
+            specialScheduleId: allSpecials[0].id,
+            employeeId: emp.id
+          }).run();
+        }
       }
     }
 

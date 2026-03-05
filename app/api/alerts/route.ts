@@ -1,24 +1,27 @@
 import { NextResponse } from 'next/server';
-import { db, initDb } from '@/lib/db';
-import { alerts } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-initDb();
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
-  const all = db.select().from(alerts).all();
+  const { data: all, error } = await supabase.from('alerts').select('*').order('created_at', { ascending: false });
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(all);
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const result = db.insert(alerts).values({
-    type: body.type,
-    title: body.title,
-    description: body.description,
-    sectorId: body.sectorId
-  }).returning().get();
-  return NextResponse.json(result);
+  const { data: inserted, error } = await supabase
+    .from('alerts')
+    .insert({
+      type: body.type,
+      title: body.title,
+      description: body.description,
+      sector_id: body.sectorId
+    })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(inserted);
 }
 
 export async function DELETE(request: Request) {
@@ -26,6 +29,8 @@ export async function DELETE(request: Request) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
   
-  db.delete(alerts).where(eq(alerts.id, parseInt(id))).run();
+  const { error } = await supabase.from('alerts').delete().eq('id', parseInt(id));
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  
   return NextResponse.json({ success: true });
 }

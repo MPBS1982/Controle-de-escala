@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LayoutDashboard, 
   Clock, 
@@ -27,9 +27,13 @@ import {
   Briefcase,
   Layers,
   Edit2,
-  Trash2
+  Trash2,
+  Database,
+  CheckCircle2,
+  FileText,
+  ArrowDownAZ
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import jsPDF from 'jspdf';
@@ -37,7 +41,7 @@ import autoTable from 'jspdf-autotable';
 
 // --- Types ---
 
-type View = 'dashboard' | 'planner' | 'employees' | 'absences' | 'overtime' | 'sectors' | 'special_schedules' | 'settings' | 'roles' | 'users';
+type View = 'dashboard' | 'planner' | 'employees' | 'absences' | 'overtime' | 'sectors' | 'special_schedules' | 'settings' | 'roles' | 'users' | 'reports';
 
 // --- Mock Data ---
 
@@ -268,6 +272,7 @@ export default function App() {
   const [loginData, setLoginData] = useState({ name: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortAlphabetical, setSortAlphabetical] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -290,8 +295,7 @@ export default function App() {
       return date.toLocaleString('pt-BR', { weekday: 'short' }).substring(0, 1).toUpperCase() + day.toString().padStart(2, '0');
     })]];
     
-    const body = employees
-      .filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    const body = filteredAndSortedEmployees
       .map(emp => {
         const row = [emp.name];
         emp.shifts.slice(0, daysToShow).forEach((shift: any) => {
@@ -356,6 +360,71 @@ export default function App() {
     showToast("PDF gerado com sucesso!");
   };
 
+  const generateIndividualPDF = (emp: any) => {
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const monthName = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    
+    doc.setFontSize(20);
+    doc.setTextColor(25, 93, 230);
+    doc.text(`Escala Individual - ${emp.name}`, 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Cargo: ${emp.role} | Mês: ${monthName}`, 14, 28);
+    
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    
+    const headers = [['Dia', 'Semana', 'Turno', 'Horário', 'Obs']];
+    const body = emp.shifts.slice(0, daysInMonth).map((shift: any, i: number) => {
+      const day = i + 1;
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+      const dayName = date.toLocaleString('pt-BR', { weekday: 'long' });
+      
+      let typeLabel = '';
+      let timeLabel = shift.time || '-';
+      
+      switch(shift.type) {
+        case 'day': typeLabel = 'Manhã'; break;
+        case 'night': typeLabel = 'Noite'; break;
+        case '12x36': typeLabel = '12x36'; break;
+        case 'vacation': typeLabel = 'Férias'; timeLabel = '-'; break;
+        case 'off': typeLabel = 'Folga'; timeLabel = '-'; break;
+        case 'empty': typeLabel = '-'; timeLabel = '-'; break;
+        default: typeLabel = shift.type;
+      }
+      
+      return [
+        day.toString().padStart(2, '0'),
+        dayName.charAt(0).toUpperCase() + dayName.slice(1),
+        typeLabel,
+        timeLabel,
+        shift.overtime ? 'Hora Extra' : ''
+      ];
+    });
+
+    autoTable(doc, {
+      head: headers,
+      body: body,
+      startY: 35,
+      styles: { fontSize: 10, cellPadding: 3 },
+      headStyles: { fillColor: [25, 93, 230], textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      didParseCell: (data) => {
+        if (data.section === 'body') {
+          if (data.row.cells[2].raw === 'Folga') {
+            data.cell.styles.textColor = [239, 68, 68];
+          }
+          if (data.row.cells[2].raw === 'Férias') {
+            data.cell.styles.textColor = [245, 158, 11];
+          }
+        }
+      }
+    });
+
+    doc.save(`escala-${emp.name.toLowerCase().replace(/\s+/g, '-')}-${monthName.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+    showToast(`Escala de ${emp.name} gerada!`);
+  };
+
   // --- State for CRUD ---
   const [employees, setEmployees] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
@@ -365,6 +434,14 @@ export default function App() {
   const [appUsers, setAppUsers] = useState<any[]>([]);
   const [specialSchedules, setSpecialSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const filteredAndSortedEmployees = useMemo(() => {
+    let result = employees.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    if (sortAlphabetical) {
+      result = [...result].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    return result;
+  }, [employees, searchQuery, sortAlphabetical]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -425,7 +502,12 @@ export default function App() {
             try {
               const res = await fetch(ep.url);
               if (!res.ok) {
-                console.error(`Error fetching ${ep.name}: ${res.status} ${res.statusText}`);
+                const errorData = await res.json().catch(() => ({}));
+                const msg = errorData.error || res.statusText;
+                console.error(`Error fetching ${ep.name}: ${res.status} ${msg}`);
+                if (ep.name === 'employees') {
+                  showToast(`Erro ao carregar dados: ${msg}`, "error");
+                }
                 return null;
               }
               const contentType = res.headers.get("content-type");
@@ -445,7 +527,7 @@ export default function App() {
         const [empData, secData, specData, alertData, roleData, userData] = results;
 
         if (empData) setEmployees(empData);
-        if (secData) setSectors(secData.map((s: any) => s.name));
+        if (secData) setSectors(secData);
         if (roleData) setRoles(roleData);
         if (userData) setAppUsers(userData);
         if (specData) setSpecialSchedules(specData);
@@ -466,6 +548,24 @@ export default function App() {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isSpecialScheduleModalOpen, setIsSpecialScheduleModalOpen] = useState(false);
+  const setupSupabase = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/setup-supabase');
+      const data = await res.json();
+      if (data.success) {
+        showToast("Supabase inicializado com sucesso!");
+        window.location.reload();
+      } else {
+        showToast(`Erro: ${data.error}`, "error");
+      }
+    } catch (e) {
+      showToast("Erro ao conectar com Supabase", "error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [editingSector, setEditingSector] = useState<any>(null);
   const [editingRole, setEditingRole] = useState<any>(null);
@@ -583,8 +683,13 @@ export default function App() {
   const addSector = async (name: string) => {
     try {
       if (editingSector) {
-        // Update logic (simplified to delete and add or add update route)
-        setSectors(sectors.map(s => s === editingSector ? name : s));
+        const res = await fetch('/api/sectors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingSector.id, name })
+        });
+        const saved = await res.json();
+        setSectors(sectors.map(s => s.id === saved.id ? saved : s));
         setEditingSector(null);
         showToast("Setor atualizado.");
       } else {
@@ -594,7 +699,7 @@ export default function App() {
           body: JSON.stringify({ name })
         });
         const saved = await res.json();
-        setSectors([...sectors, saved.name]);
+        setSectors([...sectors, saved]);
         showToast("Setor criado.");
       }
       setIsSectorModalOpen(false);
@@ -604,10 +709,10 @@ export default function App() {
     }
   };
 
-  const deleteSector = async (name: string) => {
+  const deleteSector = async (id: number) => {
     try {
-      await fetch(`/api/sectors?name=${name}`, { method: 'DELETE' });
-      setSectors(sectors.filter(s => s !== name));
+      await fetch(`/api/sectors?id=${id}`, { method: 'DELETE' });
+      setSectors(sectors.filter(s => s.id !== id));
       showToast("Setor removido.");
     } catch (e) { 
       console.error(e);
@@ -708,6 +813,72 @@ export default function App() {
       setAlerts([saved, ...alerts]);
       showToast("Ausência registrada e RH notificado!");
     } catch (e) { console.error(e); }
+  };
+
+  const generateEmployeeReport = () => {
+    const doc = new jsPDF();
+    doc.text("Relatório de Colaboradores", 14, 15);
+    
+    const tableData = employees.map(emp => [
+      emp.name,
+      roles.find((r: any) => r.id === emp.roleId)?.name || 'N/A',
+      emp.sector || 'N/A'
+    ]);
+
+    autoTable(doc, {
+      head: [['Nome', 'Cargo', 'Setor']],
+      body: tableData,
+      startY: 25,
+    });
+
+    doc.save("colaboradores.pdf");
+    showToast("Relatório de colaboradores gerado!");
+  };
+
+  const generateShiftReport = () => {
+    const doc = new jsPDF('l', 'mm', 'a4');
+    const monthName = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+    doc.text(`Escala Mensal - ${monthName}`, 14, 15);
+
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    const headers = ['Colaborador', ...Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString())];
+    
+    const tableData = employees.map(emp => [
+      emp.name,
+      ...emp.shifts.slice(0, daysInMonth).map((s: any) => s.type === 'empty' ? '-' : s.type)
+    ]);
+
+    autoTable(doc, {
+      head: [headers],
+      body: tableData,
+      startY: 25,
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [41, 128, 185] }
+    });
+
+    doc.save(`escala_${monthName.replace(' ', '_')}.pdf`);
+    showToast("Escala mensal gerada!");
+  };
+
+  const generateSpecialReport = () => {
+    const doc = new jsPDF();
+    doc.text("Relatório de Escalas Especiais", 14, 15);
+
+    const tableData = specialSchedules.map(schedule => [
+      schedule.name,
+      schedule.date,
+      schedule.status,
+      schedule.employees?.map((e: any) => e.name).join(', ') || 'Nenhum'
+    ]);
+
+    autoTable(doc, {
+      head: [['Evento', 'Data', 'Status', 'Equipe']],
+      body: tableData,
+      startY: 25,
+    });
+
+    doc.save("escalas_especiais.pdf");
+    showToast("Relatório de escalas especiais gerado!");
   };
 
   const requestOvertime = async () => {
@@ -883,6 +1054,13 @@ export default function App() {
             label="Escalas Especiais" 
             active={view === 'special_schedules'}
             onClick={() => { setView('special_schedules'); setIsSidebarOpen(false); }}
+            darkMode={darkMode}
+          />
+          <SidebarItem 
+            icon={FileText} 
+            label="Relatórios" 
+            active={view === 'reports'}
+            onClick={() => { setView('reports'); setIsSidebarOpen(false); }}
             darkMode={darkMode}
           />
           {currentUser?.isMaster && (
@@ -1421,6 +1599,17 @@ export default function App() {
                       </button>
                     </div>
                     <button 
+                      onClick={() => setSortAlphabetical(!sortAlphabetical)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-bold transition-colors",
+                        sortAlphabetical ? "bg-primary/10 border-primary text-primary" : "border-slate-200 hover:bg-slate-50"
+                      )}
+                      title="Ordenar Alfabeticamente"
+                    >
+                      <ArrowDownAZ size={18} />
+                      <span className="hidden sm:inline">A-Z</span>
+                    </button>
+                    <button 
                       onClick={generatePDF}
                       className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 shadow-sm transition-colors"
                     >
@@ -1463,7 +1652,7 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {employees.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase())).map((emp) => (
+                      {filteredAndSortedEmployees.map((emp) => (
                         <tr key={emp.id} className="group hover:bg-slate-50/50">
                           <td className="p-4 border-b border-r border-slate-200 sticky left-0 bg-white z-10">
                             <div className="flex items-center gap-3">
@@ -1472,12 +1661,22 @@ export default function App() {
                                 <p className="text-sm font-bold truncate">{emp.name}</p>
                                 <p className="text-[10px] text-slate-500 uppercase tracking-wider">{emp.role}</p>
                               </div>
-                              <button 
-                                onClick={() => deleteEmployee(emp.id)}
-                                className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-red-500 transition-opacity"
-                              >
-                                <Ban size={14} />
-                              </button>
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={() => generateIndividualPDF(emp)}
+                                  className="text-slate-300 hover:text-primary p-1"
+                                  title="Gerar PDF Individual"
+                                >
+                                  <FileText size={14} />
+                                </button>
+                                <button 
+                                  onClick={() => deleteEmployee(emp.id)}
+                                  className="text-slate-300 hover:text-red-500 p-1"
+                                  title="Excluir Colaborador"
+                                >
+                                  <Ban size={14} />
+                                </button>
+                              </div>
                             </div>
                           </td>
                           {(() => {
@@ -1591,7 +1790,19 @@ export default function App() {
                 )}
               >
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold">Colaboradores</h3>
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-xl font-bold">Colaboradores</h3>
+                    <button 
+                      onClick={() => setSortAlphabetical(!sortAlphabetical)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 border rounded-lg text-xs font-bold transition-colors",
+                        sortAlphabetical ? "bg-primary/10 border-primary text-primary" : "border-slate-200 hover:bg-slate-50"
+                      )}
+                    >
+                      <ArrowDownAZ size={14} />
+                      A-Z
+                    </button>
+                  </div>
                   <button 
                     onClick={() => setIsEmployeeModalOpen(true)}
                     className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold"
@@ -1600,7 +1811,7 @@ export default function App() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {employees.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase())).map(emp => (
+                  {filteredAndSortedEmployees.map(emp => (
                     <div key={emp.id} className="p-4 border border-slate-100 rounded-xl flex items-center gap-4 hover:border-primary/30 transition-colors group relative">
                       <button 
                         onClick={() => {
@@ -1616,9 +1827,18 @@ export default function App() {
                         <p className="font-bold">{emp.name}</p>
                         <p className="text-xs text-slate-500">{emp.role}</p>
                       </div>
-                      <button onClick={() => deleteEmployee(emp.id)} className="text-slate-300 hover:text-red-500">
-                        <Ban size={18} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button 
+                          onClick={() => generateIndividualPDF(emp)}
+                          className="text-slate-300 hover:text-primary p-1.5"
+                          title="Gerar PDF Individual"
+                        >
+                          <FileText size={18} />
+                        </button>
+                        <button onClick={() => deleteEmployee(emp.id)} className="text-slate-300 hover:text-red-500 p-1.5" title="Excluir">
+                          <Ban size={18} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -1729,13 +1949,13 @@ export default function App() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {sectors.filter(s => s.toLowerCase().includes(searchQuery.toLowerCase())).map(sector => (
-                    <div key={sector} className="p-4 border border-slate-100 rounded-xl flex items-center justify-between hover:border-primary/30 transition-colors">
+                  {sectors.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map(sector => (
+                    <div key={sector.id} className="p-4 border border-slate-100 rounded-xl flex items-center justify-between hover:border-primary/30 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
                           <Users size={20} />
                         </div>
-                        <p className="font-bold">{sector}</p>
+                        <p className="font-bold">{sector.name}</p>
                       </div>
                       <div className="flex gap-2">
                         <button 
@@ -1745,7 +1965,7 @@ export default function App() {
                           <Settings size={16} />
                         </button>
                         <button 
-                          onClick={() => deleteSector(sector)}
+                          onClick={() => deleteSector(sector.id)}
                           className="text-slate-400 hover:text-red-500"
                         >
                           <Ban size={16} />
@@ -1810,6 +2030,26 @@ export default function App() {
                   </section>
 
                   <section>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Banco de Dados</h4>
+                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                        <p className="text-sm text-slate-600 mb-4">
+                          <strong>Importante:</strong> Antes de clicar no botão abaixo, você deve copiar o conteúdo do arquivo <code>supabase_schema.sql</code> e executá-lo no <strong>SQL Editor</strong> do seu painel Supabase para criar as tabelas.
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          <button 
+                            onClick={setupSupabase}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-colors"
+                          >
+                            <Database size={18} /> 1. Inicializar Dados no Supabase
+                          </button>
+                          <p className="text-[10px] text-slate-400 text-center uppercase font-bold">
+                            Isso carregará os 162 colaboradores, setores e cargos.
+                          </p>
+                        </div>
+                      </div>
+                  </section>
+
+                  <section>
                     <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Relatórios para RH</h4>
                     <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
                       <p className="text-sm text-blue-800 mb-4">
@@ -1871,11 +2111,31 @@ export default function App() {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex -space-x-2">
-                          {[1, 2, 3].map(i => (
-                            <Image key={i} src={`https://picsum.photos/seed/${schedule.id + i}/100/100`} width={32} height={32} className="rounded-full border-2 border-white bg-slate-200" alt="Avatar" referrerPolicy="no-referrer" />
-                          ))}
+                          {schedule.employees && schedule.employees.length > 0 ? (
+                            schedule.employees.slice(0, 5).map((emp: any) => (
+                              <Image 
+                                key={emp.id} 
+                                src={emp.avatar || `https://picsum.photos/seed/${emp.id}/100/100`} 
+                                width={32} 
+                                height={32} 
+                                className="rounded-full border-2 border-white bg-slate-200" 
+                                alt={emp.name} 
+                                referrerPolicy="no-referrer" 
+                              />
+                            ))
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] text-slate-400">
+                              0
+                            </div>
+                          )}
                         </div>
-                        <span className="text-xs text-slate-400">+12 colaboradores</span>
+                        <span className="text-xs text-slate-400">
+                          {schedule.employees && schedule.employees.length > 5 
+                            ? `+${schedule.employees.length - 5} colaboradores` 
+                            : schedule.employees && schedule.employees.length > 0
+                              ? `${schedule.employees.length} colaborador(es)`
+                              : "Nenhum colaborador"}
+                        </span>
                       </div>
                       <div className="flex gap-3 pt-2 border-t border-slate-50">
                         <button 
@@ -1896,6 +2156,60 @@ export default function App() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            ) : view === 'reports' ? (
+              <motion.div
+                key="reports"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-bold">Relatórios e Exportação</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center mb-4">
+                      <Users size={24} />
+                    </div>
+                    <h4 className="font-bold mb-2">Lista de Colaboradores</h4>
+                    <p className="text-sm text-slate-500 mb-4">Gere um PDF com a lista completa de todos os colaboradores e seus cargos.</p>
+                    <button 
+                      onClick={() => generateEmployeeReport()}
+                      className="w-full py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
+                    >
+                      Gerar PDF
+                    </button>
+                  </div>
+                  
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-lg flex items-center justify-center mb-4">
+                      <CalendarDays size={24} />
+                    </div>
+                    <h4 className="font-bold mb-2">Escala Mensal</h4>
+                    <p className="text-sm text-slate-500 mb-4">Exporte a escala de turnos do mês atual para todos os colaboradores.</p>
+                    <button 
+                      onClick={() => generateShiftReport()}
+                      className="w-full py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
+                    >
+                      Gerar PDF
+                    </button>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-lg flex items-center justify-center mb-4">
+                      <Zap size={24} />
+                    </div>
+                    <h4 className="font-bold mb-2">Escalas Especiais</h4>
+                    <p className="text-sm text-slate-500 mb-4">Relatório de eventos e escalas especiais com equipes designadas.</p>
+                    <button 
+                      onClick={() => generateSpecialReport()}
+                      className="w-full py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
+                    >
+                      Gerar PDF
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ) : (
@@ -1932,6 +2246,7 @@ export default function App() {
                 addEmployee({
                   name: formData.get('name'),
                   roleId: parseInt(formData.get('roleId') as string),
+                  sectorId: formData.get('sectorId') ? parseInt(formData.get('sectorId') as string) : null,
                   avatar: editingEmployee?.avatar || `https://picsum.photos/seed/${formData.get('name')}/100/100`
                 });
               }} className="space-y-4">
@@ -1944,6 +2259,15 @@ export default function App() {
                   <select name="roleId" defaultValue={editingEmployee?.roleId || roles[0]?.id} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
                     {roles.map(role => (
                       <option key={role.id} value={role.id}>{role.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
+                  <select name="sectorId" defaultValue={editingEmployee?.sectorId || sectors[0]?.id} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="">Nenhum</option>
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>{sector.name}</option>
                     ))}
                   </select>
                 </div>
@@ -2092,7 +2416,7 @@ export default function App() {
               }} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Setor</label>
-                  <input name="name" defaultValue={editingSector || ''} required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+                  <input name="name" defaultValue={editingSector?.name || ''} required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsSectorModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>

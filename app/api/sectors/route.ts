@@ -1,28 +1,44 @@
 import { NextResponse } from 'next/server';
-import { db, initDb } from '@/lib/db';
-import { sectors } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-
-initDb();
+import { supabase } from '@/lib/supabase';
 
 export async function GET() {
-  const allSectors = db.select().from(sectors).all();
+  const { data: allSectors, error } = await supabase.from('sectors').select('*');
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(allSectors);
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const result = db.insert(sectors).values({
-    name: body.name
-  }).returning().get();
-  return NextResponse.json(result);
+  
+  if (body.id) {
+    const { data: updated, error } = await supabase
+      .from('sectors')
+      .update({ name: body.name })
+      .eq('id', body.id)
+      .select()
+      .single();
+    
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(updated);
+  }
+
+  const { data: inserted, error } = await supabase
+    .from('sectors')
+    .insert({ name: body.name })
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json(inserted);
 }
 
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
-  const name = searchParams.get('name');
-  if (!name) return NextResponse.json({ error: 'Name required' }, { status: 400 });
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
   
-  db.delete(sectors).where(eq(sectors.name, name)).run();
+  const { error } = await supabase.from('sectors').delete().eq('id', parseInt(id));
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  
   return NextResponse.json({ success: true });
 }

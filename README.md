@@ -1,20 +1,50 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# ShiftMaster - Sistema de Gestão de Escalas
 
-# Run and deploy your AI Studio app
+ShiftMaster é uma aplicação web robusta para gestão de escalas de colaboradores, turnos, ausências e eventos especiais. Desenvolvido com Next.js, TypeScript e SQLite.
 
-This contains everything you need to run your app locally.
+## Funcionalidades
 
-View your app in AI Studio: https://ai.studio/apps/b52a3131-4d58-403b-a3ec-22dfeb221790
+- **Dashboard**: Visão geral de alertas, métricas e status da equipe.
+- **Planejador**: Interface interativa para gerenciar turnos diários.
+- **Colaboradores**: Cadastro e gestão completa de funcionários.
+- **Escalas Especiais**: Planejamento de escalas para eventos específicos com equipes designadas.
+- **Relatórios**: Geração de relatórios em PDF para colaboradores, escalas mensais e eventos.
+- **Gestão de Acesso**: Sistema de login com níveis de permissão (Admin/Master).
+- **Notificações**: Alertas automáticos de ausências e solicitações de horas extras.
 
-## Run Locally
+## Tecnologias Utilizadas
 
-**Prerequisites:**  Node.js
+- **Frontend**: Next.js 15, React 19, Tailwind CSS, Framer Motion.
+- **Backend**: Next.js API Routes.
+- **Banco de Dados**: SQLite com Drizzle ORM.
+- **Relatórios**: jsPDF, jsPDF-AutoTable.
+- **Ícones**: Lucide React.
 
+## Como Executar
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. Instale as dependências:
+   ```bash
+   npm install
+   ```
+
+2. Execute o servidor de desenvolvimento:
+   ```bash
+   npm run dev
+   ```
+
+3. Acesse a aplicação em `http://localhost:3000`.
+
+## Credenciais Padrão
+
+- **Usuário**: admin@shiftmaster.com
+- **Senha**: admin
+
+## Estrutura do Projeto
+
+- `/app`: Rotas e componentes da aplicação Next.js.
+- `/components`: Componentes React reutilizáveis.
+- `/lib`: Utilitários, configurações de banco de dados e schema.
+- `/public`: Ativos estáticos.
+
+---
+Desenvolvido para Talho Delicatessen.

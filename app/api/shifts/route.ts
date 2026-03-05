@@ -1,53 +1,64 @@
 import { NextResponse } from 'next/server';
-import { db, initDb } from '@/lib/db';
-import { shifts } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-
-initDb();
+import { supabase } from '@/lib/supabase';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const employeeId = searchParams.get('employeeId');
   
-  let query = db.select().from(shifts);
+  let query = supabase.from('shifts').select('*');
   if (employeeId) {
-    // @ts-ignore
-    query = query.where(eq(shifts.employeeId, parseInt(employeeId)));
+    query = query.eq('employee_id', parseInt(employeeId));
   }
   
-  const allShifts = query.all();
+  const { data: allShifts, error } = await query;
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  
   return NextResponse.json(allShifts);
 }
 
 export async function POST(request: Request) {
   const body = await request.json();
   
-  // Upsert logic for shifts
-  const existing = db.select().from(shifts).where(
-    and(
-      eq(shifts.employeeId, body.employeeId),
-      eq(shifts.day, body.day),
-      eq(shifts.month, body.month),
-      eq(shifts.year, body.year)
-    )
-  ).get();
+  // Upsert logic for shifts in Supabase
+  const { data: existing, error: fetchError } = await supabase
+    .from('shifts')
+    .select('*')
+    .eq('employee_id', body.employeeId)
+    .eq('day', body.day)
+    .eq('month', body.month)
+    .eq('year', body.year)
+    .maybeSingle();
+
+  if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
+
+  const shiftData = {
+    employee_id: body.employeeId,
+    day: body.day,
+    month: body.month,
+    year: body.year,
+    type: body.type,
+    time: body.time,
+    overtime: body.overtime
+  };
 
   if (existing) {
-    const result = db.update(shifts)
-      .set({ type: body.type, time: body.time, overtime: body.overtime })
-      .where(eq(shifts.id, existing.id))
-      .returning().get();
-    return NextResponse.json(result);
+    const { data: updated, error: updateError } = await supabase
+      .from('shifts')
+      .update(shiftData)
+      .eq('id', existing.id)
+      .select()
+      .single();
+    
+    if (updateError) return NextResponse.json({ error: updateError.message }, { status: 500 });
+    return NextResponse.json(updated);
   } else {
-    const result = db.insert(shifts).values({
-      employeeId: body.employeeId,
-      day: body.day,
-      month: body.month,
-      year: body.year,
-      type: body.type,
-      time: body.time,
-      overtime: body.overtime
-    }).returning().get();
-    return NextResponse.json(result);
+    const { data: inserted, error: insertError } = await supabase
+      .from('shifts')
+      .insert(shiftData)
+      .select()
+      .single();
+    
+    if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 });
+    return NextResponse.json(inserted);
   }
 }

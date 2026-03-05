@@ -52,3 +52,9 @@ export const specialSchedules = sqliteTable('special_schedules', {
   date: text('date').notNull(),
   status: text('status').notNull(),
 });
+
+export const specialScheduleAssignments = sqliteTable('special_schedule_assignments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  specialScheduleId: integer('special_schedule_id').notNull().references(() => specialSchedules.id),
+  employeeId: integer('employee_id').notNull().references(() => employees.id),
+});
