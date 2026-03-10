@@ -2,9 +2,7 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  turbopack: {},
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -17,10 +15,6 @@ const nextConfig: NextConfig = {
         pathname: '/**', // This allows any path under the hostname
       },
     ],
-  },
-  devIndicators: {
-    appIsrStatus: false,
-    buildActivity: false,
   },
   webpack: (config, {dev}) => {
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
