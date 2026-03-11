@@ -548,6 +548,8 @@ export default function App() {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isSpecialScheduleModalOpen, setIsSpecialScheduleModalOpen] = useState(false);
+  const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
+  const [isDoubleShiftModalOpen, setIsDoubleShiftModalOpen] = useState(false);
   const setupSupabase = async () => {
     try {
       setIsLoading(true);
@@ -798,20 +800,47 @@ export default function App() {
     }
   };
 
-  const registerAbsence = async () => {
+  const registerAbsence = async (employeeId: number, reason: string) => {
+    const employee = employees.find(e => e.id === employeeId);
+    if (!employee) return;
+
     try {
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'error',
-          title: 'Nova Ausência Registrada',
-          description: 'Registro manual de falta - Notificação enviada para rh@talhodelicatessen.com.br'
+          title: `Falta: ${employee.name}`,
+          description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para rh@talhodelicatessen.com.br`
         })
       });
       const saved = await res.json();
       setAlerts([saved, ...alerts]);
       showToast("Ausência registrada e RH notificado!");
+      setIsAbsenceModalOpen(false);
+    } catch (e) { console.error(e); }
+  };
+  
+  const registerDoubleShift = async (employeeId: number, date: string, sectorId: number) => {
+    const employee = employees.find(e => e.id === employeeId);
+    const sector = sectors.find(s => s.id === sectorId);
+    if (!employee || !sector) return;
+
+    try {
+      const res = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'warning',
+          title: `Dobra: ${employee.name}`,
+          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para rh@talhodelicatessen.com.br`,
+          sectorId: sector.id
+        })
+      });
+      const saved = await res.json();
+      setAlerts([saved, ...alerts]);
+      showToast("Dobra registrada e RH notificado!");
+      setIsDoubleShiftModalOpen(false);
     } catch (e) { console.error(e); }
   };
 
@@ -1248,7 +1277,7 @@ export default function App() {
                       {DEPARTMENTS.map((dept, i) => {
                         const heights = [96, 85, 92, 78, 88, 94];
                         return (
-                          <div key={dept} className="flex flex-col items-center gap-3 w-full group">
+                          <div key={`dept-chart-${dept}`} className="flex flex-col items-center gap-3 w-full group">
                             <div className="w-12 bg-primary/10 rounded-t-lg relative flex items-end justify-center group-hover:bg-primary/20 transition-colors h-full">
                               <motion.div 
                                 initial={{ height: 0 }}
@@ -1274,7 +1303,7 @@ export default function App() {
                     </div>
                     <div className="space-y-4">
                       {alerts.length > 0 ? alerts.slice(0, 3).map((alert) => (
-                        <div key={alert.id} className={cn(
+                        <div key={`alert-dash-${alert.id}`} className={cn(
                           "flex gap-4 p-3 rounded-lg border",
                           alert.type === 'error' ? "bg-red-50 border-red-100" : 
                           alert.type === 'warning' ? "bg-yellow-50 border-yellow-100" : "bg-blue-50 border-blue-100"
@@ -1318,14 +1347,25 @@ export default function App() {
                 {/* Double Shifts Table */}
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                   <div className="flex items-center justify-between mb-6">
-                    <h4 className="font-bold text-lg">Resumo de Próximos Turnos Duplos</h4>
-                    <div className="flex gap-4">
-                      <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span> Confirmado
-                      </span>
-                      <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <span className="w-2 h-2 rounded-full bg-yellow-500"></span> Pendente
-                      </span>
+                    <div>
+                      <h4 className="font-bold text-lg">Resumo de Próximos Turnos Duplos</h4>
+                      <p className="text-xs text-slate-500">Gestão de dobras e turnos estendidos</p>
+                    </div>
+                    <div className="flex gap-4 items-center">
+                      <button 
+                        onClick={() => setIsDoubleShiftModalOpen(true)}
+                        className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
+                      >
+                        <Plus size={14} /> Registrar Dobra
+                      </button>
+                      <div className="flex gap-4">
+                        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <span className="w-2 h-2 rounded-full bg-green-500"></span> Confirmado
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <span className="w-2 h-2 rounded-full bg-yellow-500"></span> Pendente
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="overflow-x-auto">
@@ -1341,8 +1381,8 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {DOUBLE_SHIFTS.map((shift) => (
-                          <tr key={shift.id} className="group hover:bg-slate-50 transition-colors">
+                        {doubleShifts.map((shift) => (
+                          <tr key={`double-shift-${shift.id}`} className="group hover:bg-slate-50 transition-colors">
                             <td className="py-4 pl-2">
                               <div className="flex items-center gap-3">
                                 <Image src={shift.avatar} width={32} height={32} className="rounded-full bg-slate-200 object-cover" alt={shift.name} referrerPolicy="no-referrer" />
@@ -1444,7 +1484,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {roles.map(role => (
-                    <div key={role.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between group">
+                    <div key={`role-${role.id}`} className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between group">
                       <div>
                         <p className="font-bold text-slate-900">{role.name}</p>
                         <p className="text-xs text-slate-500">
@@ -1500,7 +1540,7 @@ export default function App() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {appUsers.map(user => (
-                        <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                        <tr key={`user-${user.id}`} className="hover:bg-slate-50 transition-colors">
                           <td className="py-4 pl-2 font-medium">{user.name}</td>
                           <td className="py-4">
                             <span className={cn(
@@ -1640,7 +1680,7 @@ export default function App() {
                             const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
                             const dayName = date.toLocaleString('pt-BR', { weekday: 'short' }).toUpperCase();
                             return (
-                              <th key={day} className="p-2 text-center border-b border-slate-200 min-w-[80px]">
+                              <th key={`header-day-${day}`} className="p-2 text-center border-b border-slate-200 min-w-[80px]">
                                 <span className="block text-xs font-bold text-slate-400">{dayName}</span>
                                 <span className={cn("text-lg", day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && "text-primary font-bold")}>
                                   {day.toString().padStart(2, '0')}
@@ -1653,7 +1693,7 @@ export default function App() {
                     </thead>
                     <tbody>
                       {filteredAndSortedEmployees.map((emp) => (
-                        <tr key={emp.id} className="group hover:bg-slate-50/50">
+                        <tr key={`planner-emp-${emp.id}`} className="group hover:bg-slate-50/50">
                           <td className="p-4 border-b border-r border-slate-200 sticky left-0 bg-white z-10">
                             <div className="flex items-center gap-3">
                               <Image src={emp.avatar} width={32} height={32} className="rounded-full bg-slate-200 object-cover" alt={emp.name} referrerPolicy="no-referrer" />
@@ -1683,7 +1723,7 @@ export default function App() {
                             const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
                             const daysToShow = plannerViewMode === 'monthly' ? daysInMonth : plannerViewMode === 'weekly' ? 7 : 1;
                             return emp.shifts.slice(0, daysToShow).map((shift: any, i: number) => (
-                              <td key={i} className="p-1 border-b border-slate-200">
+                              <td key={`shift-${emp.id}-${i}`} className="p-1 border-b border-slate-200">
                                 <div onClick={() => {
                                   setEditingEmployee({ empId: emp.id, dayIndex: i });
                                   setIsShiftModalOpen(true);
@@ -1721,11 +1761,11 @@ export default function App() {
                             });
                             
                             return (
-                              <td key={i} className="p-1 border-b border-slate-200">
+                              <td key={`special-day-${i}`} className="p-1 border-b border-slate-200">
                                 {dayEvents.length > 0 ? (
                                   <div className="flex flex-col gap-1">
                                     {dayEvents.map(event => (
-                                      <div key={event.id} className="px-2 py-1 bg-amber-50 border border-amber-200 rounded text-[10px] font-bold text-amber-700 truncate" title={event.name}>
+                                      <div key={`event-${event.id}`} className="px-2 py-1 bg-amber-50 border border-amber-200 rounded text-[10px] font-bold text-amber-700 truncate" title={event.name}>
                                         {event.name}
                                       </div>
                                     ))}
@@ -1812,7 +1852,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredAndSortedEmployees.map(emp => (
-                    <div key={emp.id} className="p-4 border border-slate-100 rounded-xl flex items-center gap-4 hover:border-primary/30 transition-colors group relative">
+                    <div key={`emp-card-${emp.id}`} className="p-4 border border-slate-100 rounded-xl flex items-center gap-4 hover:border-primary/30 transition-colors group relative">
                       <button 
                         onClick={() => {
                           setEditingEmployee(emp);
@@ -1853,7 +1893,7 @@ export default function App() {
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-bold">Gestão de Ausências</h3>
                   <button 
-                    onClick={registerAbsence}
+                    onClick={() => setIsAbsenceModalOpen(true)}
                     className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                   >
                     <Plus size={16} /> Registrar Falta
@@ -1861,7 +1901,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {alerts.filter(a => a.type === 'error').map(alert => (
-                    <div key={alert.id} className={cn(
+                    <div key={`absence-alert-${alert.id}`} className={cn(
                       "p-4 rounded-xl border flex items-center justify-between",
                       darkMode ? "bg-slate-900 border-red-900/30" : "bg-white border-red-100"
                     )}>
@@ -1907,7 +1947,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {alerts.filter(a => a.type === 'warning').map(alert => (
-                    <div key={alert.id} className="bg-white p-4 rounded-xl border border-yellow-100 flex items-center justify-between">
+                    <div key={`overtime-alert-${alert.id}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
                           <Clock size={20} />
@@ -1950,7 +1990,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {sectors.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map(sector => (
-                    <div key={sector.id} className="p-4 border border-slate-100 rounded-xl flex items-center justify-between hover:border-primary/30 transition-colors">
+                    <div key={`sector-${sector.id}`} className="p-4 border border-slate-100 rounded-xl flex items-center justify-between hover:border-primary/30 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
                           <Users size={20} />
@@ -2094,7 +2134,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {specialSchedules.map(schedule => (
-                    <div key={schedule.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-4">
+                    <div key={`special-schedule-${schedule.id}`} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-4">
                       <div className="flex justify-between items-start">
                         <div>
                           <h4 className="font-bold text-lg">{schedule.name}</h4>
@@ -2114,7 +2154,7 @@ export default function App() {
                           {schedule.employees && schedule.employees.length > 0 ? (
                             schedule.employees.slice(0, 5).map((emp: any) => (
                               <Image 
-                                key={emp.id} 
+                                key={`special-emp-${schedule.id}-${emp.id}`} 
                                 src={emp.avatar || `https://picsum.photos/seed/${emp.id}/100/100`} 
                                 width={32} 
                                 height={32} 
@@ -2258,7 +2298,7 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cargo</label>
                   <select name="roleId" defaultValue={editingEmployee?.roleId || roles[0]?.id} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
                     {roles.map(role => (
-                      <option key={role.id} value={role.id}>{role.name}</option>
+                      <option key={`opt-role-${role.id}`} value={role.id}>{role.name}</option>
                     ))}
                   </select>
                 </div>
@@ -2267,7 +2307,7 @@ export default function App() {
                   <select name="sectorId" defaultValue={editingEmployee?.sectorId || sectors[0]?.id} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
                     <option value="">Nenhum</option>
                     {sectors.map((sector) => (
-                      <option key={sector.id} value={sector.id}>{sector.name}</option>
+                      <option key={`opt-sector-${sector.id}`} value={sector.id}>{sector.name}</option>
                     ))}
                   </select>
                 </div>
@@ -2382,7 +2422,7 @@ export default function App() {
                   { type: 'off', label: 'Folga', time: '-' },
                 ].map(s => (
                   <button
-                    key={s.type}
+                    key={`shift-type-${s.type}`}
                     onClick={() => updateShift(editingEmployee.empId, editingEmployee.dayIndex, s)}
                     className="p-4 border border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left"
                   >
@@ -2465,6 +2505,102 @@ export default function App() {
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">
                     {editingSpecialSchedule ? 'Salvar Alterações' : 'Criar Escala'}
                   </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+        {isAbsenceModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsAbsenceModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+            >
+              <h3 className="text-xl font-bold mb-6">Registrar Falta</h3>
+              <form onSubmit={(e: any) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                registerAbsence(
+                  parseInt(formData.get('employeeId') as string),
+                  formData.get('reason') as string
+                );
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
+                  <select name="employeeId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="">Selecione um colaborador</option>
+                    {employees.map(emp => (
+                      <option key={`opt-absence-emp-${emp.id}`} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Motivo (Opcional)</label>
+                  <textarea name="reason" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none h-24" placeholder="Ex: Problemas de saúde, emergência familiar..." />
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setIsAbsenceModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
+                  <button type="submit" className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold">Registrar Falta</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+        {isDoubleShiftModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsDoubleShiftModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+            >
+              <h3 className="text-xl font-bold mb-6">Registrar Dobra</h3>
+              <form onSubmit={(e: any) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                registerDoubleShift(
+                  parseInt(formData.get('employeeId') as string),
+                  formData.get('date') as string,
+                  parseInt(formData.get('sectorId') as string)
+                );
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label>
+                  <input name="date" type="date" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
+                  <select name="employeeId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="">Selecione um colaborador</option>
+                    {employees.map(emp => (
+                      <option key={`opt-double-emp-${emp.id}`} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
+                  <select name="sectorId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="">Selecione um setor</option>
+                    {sectors.map(sector => (
+                      <option key={`opt-double-sector-${sector.id}`} value={sector.id}>{sector.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setIsDoubleShiftModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
+                  <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">Registrar Dobra</button>
                 </div>
               </form>
             </motion.div>
