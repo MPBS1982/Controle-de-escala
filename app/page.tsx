@@ -435,13 +435,20 @@ export default function App() {
   const [specialSchedules, setSpecialSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
+
   const filteredAndSortedEmployees = useMemo(() => {
     let result = employees.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    
+    if (plannerSectorFilter !== 'all') {
+      result = result.filter(e => e.sector_id === parseInt(plannerSectorFilter));
+    }
+
     if (sortAlphabetical) {
       result = [...result].sort((a, b) => a.name.localeCompare(b.name));
     }
     return result;
-  }, [employees, searchQuery, sortAlphabetical]);
+  }, [employees, searchQuery, sortAlphabetical, plannerSectorFilter]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -550,6 +557,7 @@ export default function App() {
   const [isSpecialScheduleModalOpen, setIsSpecialScheduleModalOpen] = useState(false);
   const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
   const [isDoubleShiftModalOpen, setIsDoubleShiftModalOpen] = useState(false);
+  const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
   const setupSupabase = async () => {
     try {
       setIsLoading(true);
@@ -805,6 +813,27 @@ export default function App() {
     if (!employee) return;
 
     try {
+      // Send real email
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'rh@talhodelicatessen.com.br',
+          subject: `NOTIFICAÇÃO DE FALTA: ${employee.name}`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #e11d48;">Notificação de Falta</h2>
+              <p><strong>Colaborador:</strong> ${employee.name}</p>
+              <p><strong>Cargo:</strong> ${employee.role}</p>
+              <p><strong>Motivo:</strong> ${reason || 'Não informado'}</p>
+              <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+            </div>
+          `
+        })
+      });
+
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -816,7 +845,7 @@ export default function App() {
       });
       const saved = await res.json();
       setAlerts([saved, ...alerts]);
-      showToast("Ausência registrada e RH notificado!");
+      showToast("Ausência registrada e RH notificado por e-mail!");
       setIsAbsenceModalOpen(false);
     } catch (e) { console.error(e); }
   };
@@ -827,6 +856,27 @@ export default function App() {
     if (!employee || !sector) return;
 
     try {
+      // Send real email
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'rh@talhodelicatessen.com.br',
+          subject: `NOTIFICAÇÃO DE DOBRA: ${employee.name}`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #f59e0b;">Notificação de Dobra</h2>
+              <p><strong>Colaborador:</strong> ${employee.name}</p>
+              <p><strong>Data da Dobra:</strong> ${date}</p>
+              <p><strong>Setor:</strong> ${sector.name}</p>
+              <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+            </div>
+          `
+        })
+      });
+
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -839,7 +889,7 @@ export default function App() {
       });
       const saved = await res.json();
       setAlerts([saved, ...alerts]);
-      showToast("Dobra registrada e RH notificado!");
+      showToast("Dobra registrada e RH notificado por e-mail!");
       setIsDoubleShiftModalOpen(false);
     } catch (e) { console.error(e); }
   };
@@ -910,20 +960,47 @@ export default function App() {
     showToast("Relatório de escalas especiais gerado!");
   };
 
-  const requestOvertime = async () => {
+  const requestOvertime = async (employeeId: number, date: string, sectorId: number) => {
+    const employee = employees.find(e => e.id === employeeId);
+    const sector = sectors.find(s => s.id === sectorId);
+    if (!employee || !sector) return;
+
     try {
+      // Send real email
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'rh@talhodelicatessen.com.br',
+          subject: `SOLICITAÇÃO DE HORA EXTRA: ${employee.name}`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #f59e0b;">Solicitação de Hora Extra</h2>
+              <p><strong>Colaborador:</strong> ${employee.name}</p>
+              <p><strong>Data Solicitada:</strong> ${date}</p>
+              <p><strong>Setor:</strong> ${sector.name}</p>
+              <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+              <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+            </div>
+          `
+        })
+      });
+
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'warning',
-          title: 'Solicitação de Hora Extra',
-          description: 'Pendente de aprovação - Notificação enviada para rh@talhodelicatessen.com.br'
+          title: `Solicitação de Hora Extra: ${employee.name}`,
+          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para rh@talhodelicatessen.com.br`,
+          sectorId: sector.id
         })
       });
       const saved = await res.json();
       setAlerts([saved, ...alerts]);
-      showToast("Solicitação enviada ao RH!");
+      showToast("Solicitação enviada ao RH por e-mail!");
+      setIsOvertimeModalOpen(false);
     } catch (e) { console.error(e); }
   };
 
@@ -1649,6 +1726,16 @@ export default function App() {
                       <ArrowDownAZ size={18} />
                       <span className="hidden sm:inline">A-Z</span>
                     </button>
+                    <select 
+                      value={plannerSectorFilter}
+                      onChange={(e) => setPlannerSectorFilter(e.target.value)}
+                      className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                      <option value="all">Todos os Setores</option>
+                      {sectors.map(s => (
+                        <option key={`filter-sector-${s.id}`} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
                     <button 
                       onClick={generatePDF}
                       className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-bold hover:bg-primary/90 shadow-sm transition-colors"
@@ -1939,7 +2026,7 @@ export default function App() {
                 <div className="flex justify-between items-center">
                   <h3 className="text-xl font-bold">Horas Extras</h3>
                   <button 
-                    onClick={requestOvertime}
+                    onClick={() => setIsOvertimeModalOpen(true)}
                     className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                   >
                     <Plus size={16} /> Solicitar Hora Extra
@@ -2069,25 +2156,27 @@ export default function App() {
                     </div>
                   </section>
 
-                  <section>
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Banco de Dados</h4>
-                      <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                        <p className="text-sm text-slate-600 mb-4">
-                          <strong>Importante:</strong> Antes de clicar no botão abaixo, você deve copiar o conteúdo do arquivo <code>supabase_schema.sql</code> e executá-lo no <strong>SQL Editor</strong> do seu painel Supabase para criar as tabelas.
-                        </p>
-                        <div className="flex flex-col gap-2">
-                          <button 
-                            onClick={setupSupabase}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-colors"
-                          >
-                            <Database size={18} /> 1. Inicializar Dados no Supabase
-                          </button>
-                          <p className="text-[10px] text-slate-400 text-center uppercase font-bold">
-                            Isso carregará os 162 colaboradores, setores e cargos.
+                  {currentUser?.isMaster && (
+                    <section>
+                      <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Banco de Dados</h4>
+                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                          <p className="text-sm text-slate-600 mb-4">
+                            <strong>Importante:</strong> Antes de clicar no botão abaixo, você deve copiar o conteúdo do arquivo <code>supabase_schema.sql</code> e executá-lo no <strong>SQL Editor</strong> do seu painel Supabase para criar as tabelas.
                           </p>
+                          <div className="flex flex-col gap-2">
+                            <button 
+                              onClick={setupSupabase}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-colors"
+                            >
+                              <Database size={18} /> 1. Inicializar Dados no Supabase
+                            </button>
+                            <p className="text-[10px] text-slate-400 text-center uppercase font-bold">
+                              Isso carregará os 162 colaboradores, setores e cargos.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                  </section>
+                    </section>
+                  )}
 
                   <section>
                     <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Relatórios para RH</h4>
@@ -2096,12 +2185,63 @@ export default function App() {
                         Os relatórios consolidados (Faltas, Horas Extras e Dobras) são enviados automaticamente para <strong>rh@talhodelicatessen.com.br</strong> todo dia 20.
                       </p>
                       <button 
-                        onClick={() => {
-                          showToast("Relatório consolidado gerado e enviado para rh@talhodelicatessen.com.br");
+                        onClick={async () => {
+                          try {
+                            const monthName = currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                            const res = await fetch('/api/send-email', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                to: 'rh@talhodelicatessen.com.br',
+                                subject: `RELATÓRIO CONSOLIDADO - ${monthName.toUpperCase()}`,
+                                html: `
+                                  <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                                    <h2 style="color: #2563eb;">Relatório Consolidado de RH</h2>
+                                    <p><strong>Mês de Referência:</strong> ${monthName}</p>
+                                    <p><strong>Resumo de Alertas:</strong></p>
+                                    <ul>
+                                      <li><strong>Faltas:</strong> ${alerts.filter(a => a.type === 'error').length}</li>
+                                      <li><strong>Horas Extras/Dobras:</strong> ${alerts.filter(a => a.type === 'warning').length}</li>
+                                    </ul>
+                                    <p><strong>Detalhes dos Alertas:</strong></p>
+                                    <table style="width: 100%; border-collapse: collapse;">
+                                      <thead>
+                                        <tr style="background-color: #f8fafc;">
+                                          <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">Tipo</th>
+                                          <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">Título</th>
+                                          <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">Descrição</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        ${alerts.map(a => `
+                                          <tr>
+                                            <td style="padding: 8px; border: 1px solid #e2e8f0;">${a.type === 'error' ? 'Falta' : 'Aviso'}</td>
+                                            <td style="padding: 8px; border: 1px solid #e2e8f0;">${a.title}</td>
+                                            <td style="padding: 8px; border: 1px solid #e2e8f0;">${a.description}</td>
+                                          </tr>
+                                        `).join('')}
+                                      </tbody>
+                                    </table>
+                                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                                    <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+                                  </div>
+                                `
+                              })
+                            });
+                            
+                            if (res.ok) {
+                              showToast("Relatório consolidado gerado e enviado para rh@talhodelicatessen.com.br");
+                            } else {
+                              showToast("Erro ao enviar relatório", "error");
+                            }
+                          } catch (error) {
+                            console.error(error);
+                            showToast("Erro ao processar relatório", "error");
+                          }
                         }}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
                       >
-                        <Download size={18} /> Enviar Relatório Agora (PDF/CSV)
+                        <Download size={18} /> Enviar Relatório Agora (E-mail)
                       </button>
                     </div>
                   </section>
@@ -2601,6 +2741,59 @@ export default function App() {
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsDoubleShiftModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">Registrar Dobra</button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+        {isOvertimeModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setIsOvertimeModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+            >
+              <h3 className="text-xl font-bold mb-6">Solicitar Hora Extra</h3>
+              <form onSubmit={(e: any) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                requestOvertime(
+                  parseInt(formData.get('employeeId') as string),
+                  formData.get('date') as string,
+                  parseInt(formData.get('sectorId') as string)
+                );
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label>
+                  <input name="date" type="date" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
+                  <select name="employeeId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="">Selecione um colaborador</option>
+                    {employees.map(emp => (
+                      <option key={`opt-overtime-emp-${emp.id}`} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
+                  <select name="sectorId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="">Selecione um setor</option>
+                    {sectors.map(sector => (
+                      <option key={`opt-overtime-sector-${sector.id}`} value={sector.id}>{sector.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button type="button" onClick={() => setIsOvertimeModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
+                  <button type="submit" className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg font-bold">Solicitar Hora Extra</button>
                 </div>
               </form>
             </motion.div>

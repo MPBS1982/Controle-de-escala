@@ -72,3 +72,4 @@ CREATE TABLE special_schedule_assignments (
 INSERT INTO roles (name) VALUES ('Gerente'), ('Vendedor'), ('Operador'), ('Estoquista');
 INSERT INTO sectors (name) VALUES ('Vendas'), ('Logística'), ('Administrativo');
 INSERT INTO users (name, password, is_master) VALUES ('admin@shiftmaster.com', 'admin', true);
+INSERT INTO users (name, password, is_master) VALUES ('Marcelo Pereira Bittencourt de Souza', 'admin', true);
