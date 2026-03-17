@@ -37,6 +37,14 @@ export async function GET() {
       is_master: true
     }, { onConflict: 'name' });
     if (userError) throw new Error(`Error seeding master user: ${userError.message}`);
+    
+    // 3.1 Seed RH Email
+    console.log("Seeding RH email...");
+    const { error: configError } = await supabase.from('config').upsert({
+      key: 'rh_email',
+      value: 'rh@talhodelicatessen.com.br'
+    }, { onConflict: 'key' });
+    if (configError) throw new Error(`Error seeding config: ${configError.message}`);
 
     // 4. Fetch roles and sectors for employee seeding
     console.log("Fetching roles and sectors...");

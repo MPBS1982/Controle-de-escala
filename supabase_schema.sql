@@ -68,8 +68,15 @@ CREATE TABLE special_schedule_assignments (
   employee_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE
 );
 
+-- 9. Configurações Globais
+CREATE TABLE config (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 -- Inserir dados iniciais (opcional)
 INSERT INTO roles (name) VALUES ('Gerente'), ('Vendedor'), ('Operador'), ('Estoquista');
 INSERT INTO sectors (name) VALUES ('Vendas'), ('Logística'), ('Administrativo');
+INSERT INTO config (key, value) VALUES ('rh_email', 'rh@talhodelicatessen.com.br');
 INSERT INTO users (name, password, is_master) VALUES ('admin@shiftmaster.com', 'admin', true);
 INSERT INTO users (name, password, is_master) VALUES ('Marcelo Pereira Bittencourt de Souza', 'admin', true);

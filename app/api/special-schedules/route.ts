@@ -34,22 +34,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const body = await request.json();
   
-  // If it's an assignment request
-  if (body.employeeId && body.specialScheduleId) {
-    const { data: assignment, error } = await supabase
-      .from('special_schedule_assignments')
-      .insert({
-        special_schedule_id: body.specialScheduleId,
-        employee_id: body.employeeId
-      })
-      .select()
-      .single();
-    
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(assignment);
-  }
-
-  // Otherwise, create a new schedule
+  // Create a new schedule
   const { data: inserted, error } = await supabase
     .from('special_schedules')
     .insert({
@@ -61,7 +46,64 @@ export async function POST(request: Request) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // If employees were provided, assign them
+  if (body.employeeIds && Array.isArray(body.employeeIds) && body.employeeIds.length > 0) {
+    const assignments = body.employeeIds.map((empId: number) => ({
+      special_schedule_id: inserted.id,
+      employee_id: empId
+    }));
+    
+    const { error: assignError } = await supabase
+      .from('special_schedule_assignments')
+      .insert(assignments);
+    
+    if (assignError) console.error("Error assigning employees:", assignError);
+  }
+
   return NextResponse.json(inserted);
+}
+
+export async function PUT(request: Request) {
+  const body = await request.json();
+  const { id, name, date, status, employeeIds } = body;
+
+  if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+
+  // Update schedule info
+  const { data: updated, error } = await supabase
+    .from('special_schedules')
+    .update({ name, date, status })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Update assignments if employeeIds provided
+  if (employeeIds && Array.isArray(employeeIds)) {
+    // 1. Delete existing assignments
+    await supabase
+      .from('special_schedule_assignments')
+      .delete()
+      .eq('special_schedule_id', id);
+
+    // 2. Insert new assignments
+    if (employeeIds.length > 0) {
+      const assignments = employeeIds.map((empId: number) => ({
+        special_schedule_id: id,
+        employee_id: empId
+      }));
+      
+      const { error: assignError } = await supabase
+        .from('special_schedule_assignments')
+        .insert(assignments);
+      
+      if (assignError) console.error("Error updating assignments:", assignError);
+    }
+  }
+
+  return NextResponse.json(updated);
 }
 
 export async function DELETE(request: Request) {

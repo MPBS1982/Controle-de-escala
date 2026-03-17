@@ -434,6 +434,9 @@ export default function App() {
   const [appUsers, setAppUsers] = useState<any[]>([]);
   const [specialSchedules, setSpecialSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEmailActive, setIsEmailActive] = useState(false);
+  const [rhEmail, setRhEmail] = useState('rh@talhodelicatessen.com.br');
+  const [selectedEmployeesForSpecial, setSelectedEmployeesForSpecial] = useState<number[]>([]);
 
   const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
 
@@ -492,6 +495,14 @@ export default function App() {
     if (!currentUser) return;
     const fetchData = async () => {
       try {
+        const statusRes = await fetch('/api/email-status');
+        const statusData = await statusRes.json();
+        setIsEmailActive(statusData.active);
+
+        const configRes = await fetch('/api/config');
+        const configData = await configRes.json();
+        if (configData.rh_email) setRhEmail(configData.rh_email);
+
         const month = currentDate.getMonth() + 1;
         const year = currentDate.getFullYear();
         
@@ -732,25 +743,46 @@ export default function App() {
 
   const addSpecialSchedule = async (schedule: any) => {
     try {
+      const payload = { ...schedule, employeeIds: selectedEmployeesForSpecial };
       if (editingSpecialSchedule) {
-        // Update logic (simplified)
-        setSpecialSchedules(specialSchedules.map(s => s.id === editingSpecialSchedule.id ? { ...s, ...schedule } : s));
+        const res = await fetch('/api/special-schedules', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, id: editingSpecialSchedule.id })
+        });
+        const updated = await res.json();
+        setSpecialSchedules(specialSchedules.map(s => s.id === updated.id ? { ...updated, employees: employees.filter(e => selectedEmployeesForSpecial.includes(e.id)) } : s));
         setEditingSpecialSchedule(null);
         showToast("Escala especial atualizada.");
       } else {
         const res = await fetch('/api/special-schedules', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(schedule)
+          body: JSON.stringify(payload)
         });
         const saved = await res.json();
-        setSpecialSchedules([...specialSchedules, saved]);
+        setSpecialSchedules([...specialSchedules, { ...saved, employees: employees.filter(e => selectedEmployeesForSpecial.includes(e.id)) }]);
         showToast("Escala especial criada.");
       }
       setIsSpecialScheduleModalOpen(false);
+      setSelectedEmployeesForSpecial([]);
     } catch (e) { 
       console.error(e);
-      showToast("Erro ao criar escala", "error");
+      showToast("Erro ao salvar escala", "error");
+    }
+  };
+
+  const saveConfig = async (key: string, value: string) => {
+    try {
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value })
+      });
+      if (key === 'rh_email') setRhEmail(value);
+      showToast("Configuração salva!");
+    } catch (e) {
+      showToast("Erro ao salvar configuração", "error");
     }
   };
 
@@ -814,11 +846,11 @@ export default function App() {
 
     try {
       // Send real email
-      await fetch('/api/send-email', {
+      const emailRes = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: 'rh@talhodelicatessen.com.br',
+          to: rhEmail,
           subject: `NOTIFICAÇÃO DE FALTA: ${employee.name}`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -834,13 +866,19 @@ export default function App() {
         })
       });
 
+      if (!emailRes.ok) {
+        const errorData = await emailRes.json();
+        console.error("Email error:", errorData.error);
+        showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
+      }
+
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'error',
           title: `Falta: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para rh@talhodelicatessen.com.br`
+          description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`
         })
       });
       const saved = await res.json();
@@ -857,11 +895,11 @@ export default function App() {
 
     try {
       // Send real email
-      await fetch('/api/send-email', {
+      const emailRes = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: 'rh@talhodelicatessen.com.br',
+          to: rhEmail,
           subject: `NOTIFICAÇÃO DE DOBRA: ${employee.name}`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -877,13 +915,19 @@ export default function App() {
         })
       });
 
+      if (!emailRes.ok) {
+        const errorData = await emailRes.json();
+        console.error("Email error:", errorData.error);
+        showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
+      }
+
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'warning',
           title: `Dobra: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para rh@talhodelicatessen.com.br`,
+          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
           sectorId: sector.id
         })
       });
@@ -967,11 +1011,11 @@ export default function App() {
 
     try {
       // Send real email
-      await fetch('/api/send-email', {
+      const emailRes = await fetch('/api/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          to: 'rh@talhodelicatessen.com.br',
+          to: rhEmail,
           subject: `SOLICITAÇÃO DE HORA EXTRA: ${employee.name}`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -987,13 +1031,19 @@ export default function App() {
         })
       });
 
+      if (!emailRes.ok) {
+        const errorData = await emailRes.json();
+        console.error("Email error:", errorData.error);
+        showToast(`Alerta: A solicitação foi feita, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
+      }
+
       const res = await fetch('/api/alerts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'warning',
           title: `Solicitação de Hora Extra: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para rh@talhodelicatessen.com.br`,
+          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
           sectorId: sector.id
         })
       });
@@ -2179,11 +2229,48 @@ export default function App() {
                   )}
 
                   <section>
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Relatórios para RH</h4>
-                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                      <p className="text-sm text-blue-800 mb-4">
-                        Os relatórios consolidados (Faltas, Horas Extras e Dobras) são enviados automaticamente para <strong>rh@talhodelicatessen.com.br</strong> todo dia 20.
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Configurações de RH</h4>
+                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-blue-800 uppercase mb-1">E-mail para Relatórios</label>
+                        <div className="flex gap-2">
+                          <input 
+                            type="email"
+                            value={rhEmail}
+                            onChange={(e) => setRhEmail(e.target.value)}
+                            className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded-md text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                            placeholder="rh@exemplo.com"
+                          />
+                          <button 
+                            onClick={() => {
+                              if (!rhEmail.includes('@') || !rhEmail.includes('.')) {
+                                showToast("Por favor, insira um e-mail válido.", "error");
+                                return;
+                              }
+                              saveConfig('rh_email', rhEmail);
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-bold hover:bg-blue-700 transition-colors"
+                          >
+                            Salvar E-mail
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-sm text-blue-800">
+                        Os relatórios consolidados (Faltas, Horas Extras e Dobras) são enviados automaticamente para <strong>{rhEmail}</strong> todo dia 20.
                       </p>
+                      
+                      {/* Email Status Indicator */}
+                      <div className="p-3 bg-white/50 rounded-md border border-blue-200 flex items-center gap-3">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full animate-pulse",
+                          isEmailActive ? "bg-emerald-500" : "bg-amber-500"
+                        )} />
+                        <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                          Status do E-mail: {isEmailActive ? "Ativo (Real)" : "Modo Simulação (Falta API Key)"}
+                        </span>
+                      </div>
+
                       <button 
                         onClick={async () => {
                           try {
@@ -2192,7 +2279,7 @@ export default function App() {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
-                                to: 'rh@talhodelicatessen.com.br',
+                                to: rhEmail,
                                 subject: `RELATÓRIO CONSOLIDADO - ${monthName.toUpperCase()}`,
                                 html: `
                                   <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
@@ -2230,9 +2317,15 @@ export default function App() {
                             });
                             
                             if (res.ok) {
-                              showToast("Relatório consolidado gerado e enviado para rh@talhodelicatessen.com.br");
+                              const data = await res.json();
+                              if (data.simulated) {
+                                showToast(`Simulação: Relatório gerado (E-mail não enviado pois a API Key não está configurada)`);
+                              } else {
+                                showToast(`Relatório consolidado enviado com sucesso para ${rhEmail}`);
+                              }
                             } else {
-                              showToast("Erro ao enviar relatório", "error");
+                              const errorData = await res.json();
+                              showToast(`Erro ao enviar relatório: ${errorData.error}`, "error");
                             }
                           } catch (error) {
                             console.error(error);
@@ -2321,6 +2414,7 @@ export default function App() {
                         <button 
                           onClick={() => {
                             setEditingSpecialSchedule(schedule);
+                            setSelectedEmployeesForSpecial(schedule.employees.map((e: any) => e.id));
                             setIsSpecialScheduleModalOpen(true);
                           }}
                           className="flex-1 text-xs font-bold py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100"
@@ -2600,7 +2694,9 @@ export default function App() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsSectorModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
-                  <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">Salvar</button>
+                  <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">
+                    {editingSector ? 'Salvar Alterações' : 'Criar Setor'}
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -2611,14 +2707,18 @@ export default function App() {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsSpecialScheduleModalOpen(false)}
+              onClick={() => {
+                setIsSpecialScheduleModalOpen(false);
+                setEditingSpecialSchedule(null);
+                setSelectedEmployeesForSpecial([]);
+              }}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div 
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto"
             >
               <h3 className="text-xl font-bold mb-6">{editingSpecialSchedule ? 'Editar Escala de Evento' : 'Nova Escala de Evento'}</h3>
               <form onSubmit={(e: any) => {
@@ -2637,10 +2737,41 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data do Evento</label>
                   <input name="date" type="date" defaultValue={editingSpecialSchedule?.date || ''} required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
                 </div>
+                
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-3">Colaboradores Escalados</label>
+                  <div className="max-h-48 overflow-y-auto border border-slate-100 rounded-lg p-2 space-y-1 bg-slate-50">
+                    {employees.sort((a, b) => a.name.localeCompare(b.name)).map(emp => (
+                      <label key={`select-emp-${emp.id}`} className="flex items-center gap-3 p-2 hover:bg-white rounded-md cursor-pointer transition-colors">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedEmployeesForSpecial.includes(emp.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedEmployeesForSpecial([...selectedEmployeesForSpecial, emp.id]);
+                            } else {
+                              setSelectedEmployeesForSpecial(selectedEmployeesForSpecial.filter(id => id !== emp.id));
+                            }
+                          }}
+                          className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Image src={emp.avatar} width={24} height={24} className="rounded-full" alt="" referrerPolicy="no-referrer" />
+                          <span className="text-sm font-medium text-slate-700">{emp.name}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-2 uppercase font-bold">
+                    {selectedEmployeesForSpecial.length} selecionado(s)
+                  </p>
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => {
                     setIsSpecialScheduleModalOpen(false);
                     setEditingSpecialSchedule(null);
+                    setSelectedEmployeesForSpecial([]);
                   }} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">
                     {editingSpecialSchedule ? 'Salvar Alterações' : 'Criar Escala'}

