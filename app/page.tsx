@@ -256,7 +256,7 @@ export default function App() {
   const [view, setView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [plannerViewMode, setPlannerViewMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
-  const [currentDate, setCurrentDate] = useState(new Date(2023, 9, 2)); // Oct 2, 2023
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -436,6 +436,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isEmailActive, setIsEmailActive] = useState(false);
   const [rhEmail, setRhEmail] = useState('rh@talhodelicatessen.com.br');
+  const [emailNotifications, setEmailNotifications] = useState(true);
   const [selectedEmployeesForSpecial, setSelectedEmployeesForSpecial] = useState<number[]>([]);
 
   const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
@@ -490,18 +491,46 @@ export default function App() {
     }
   }, []);
 
+  // Handle ChunkLoadError
+  useEffect(() => {
+    const handleChunkError = (e: ErrorEvent) => {
+      if (e.message?.includes('Loading chunk') || e.message?.includes('Failed to load chunk')) {
+        console.warn('ChunkLoadError detected, reloading page...');
+        window.location.reload();
+      }
+    };
+    window.addEventListener('error', handleChunkError);
+    return () => window.removeEventListener('error', handleChunkError);
+  }, []);
+
   // Fetch data on mount and when currentDate changes
   useEffect(() => {
     if (!currentUser) return;
     const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const statusRes = await fetch('/api/email-status');
-        const statusData = await statusRes.json();
-        setIsEmailActive(statusData.active);
+        // Fetch email status and config separately with their own error handling
+        try {
+          const statusRes = await fetch('/api/email-status');
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            setIsEmailActive(statusData.active);
+          }
+        } catch (e) {
+          console.error("Error fetching email status:", e);
+        }
 
-        const configRes = await fetch('/api/config');
-        const configData = await configRes.json();
-        if (configData.rh_email) setRhEmail(configData.rh_email);
+        try {
+          const configRes = await fetch('/api/config');
+          if (configRes.ok) {
+            const configData = await configRes.json();
+            if (configData.rh_email) setRhEmail(configData.rh_email);
+            if (configData.dark_mode) setDarkMode(configData.dark_mode === 'true');
+            if (configData.email_notifications) setEmailNotifications(configData.email_notifications === 'true');
+          }
+        } catch (e) {
+          console.error("Error fetching config:", e);
+        }
 
         const month = currentDate.getMonth() + 1;
         const year = currentDate.getFullYear();
@@ -523,9 +552,6 @@ export default function App() {
                 const errorData = await res.json().catch(() => ({}));
                 const msg = errorData.error || res.statusText;
                 console.error(`Error fetching ${ep.name}: ${res.status} ${msg}`);
-                if (ep.name === 'employees') {
-                  showToast(`Erro ao carregar dados: ${msg}`, "error");
-                }
                 return null;
               }
               const contentType = res.headers.get("content-type");
@@ -536,7 +562,7 @@ export default function App() {
                 return null;
               }
             } catch (e) {
-              console.error(`Error fetching ${ep.name}:`, e);
+              console.error(`Network error fetching ${ep.name}:`, e);
               return null;
             }
           })
@@ -551,7 +577,8 @@ export default function App() {
         if (specData) setSpecialSchedules(specData);
         if (alertData) setAlerts(alertData);
       } catch (error) {
-        console.error("Error in fetchData:", error);
+        console.error("Unexpected error in fetchData:", error);
+        showToast("Erro ao carregar dados. Verifique sua conexão.", "error");
       } finally {
         setIsLoading(false);
       }
@@ -588,6 +615,7 @@ export default function App() {
   };
 
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
+  const [editingShift, setEditingShift] = useState<any>(null);
   const [editingSector, setEditingSector] = useState<any>(null);
   const [editingRole, setEditingRole] = useState<any>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -608,11 +636,19 @@ export default function App() {
       });
       if (!res.ok) throw new Error("Failed to save employee");
       const saved = await res.json();
+      const roleName = roles.find(r => r.id === saved.role_id)?.name;
+      const updatedEmp = { 
+        ...saved, 
+        role: roleName, 
+        roleId: saved.role_id, 
+        sectorId: saved.sector_id 
+      };
+
       if (editingEmployee) {
-        setEmployees(employees.map(e => e.id === saved.id ? { ...e, ...saved } : e));
+        setEmployees(employees.map(e => e.id === saved.id ? { ...e, ...updatedEmp } : e));
         showToast("Colaborador atualizado!");
       } else {
-        setEmployees([...employees, { ...saved, shifts: Array(31).fill({ type: 'empty' }) }]);
+        setEmployees([...employees, { ...updatedEmp, shifts: Array(31).fill({ type: 'empty' }) }]);
         showToast("Colaborador adicionado!");
       }
       setIsEmployeeModalOpen(false);
@@ -772,7 +808,7 @@ export default function App() {
     }
   };
 
-  const saveConfig = async (key: string, value: string) => {
+  const saveConfig = async (key: string, value: string, silent = false) => {
     try {
       await fetch('/api/config', {
         method: 'POST',
@@ -780,9 +816,10 @@ export default function App() {
         body: JSON.stringify({ key, value })
       });
       if (key === 'rh_email') setRhEmail(value);
-      showToast("Configuração salva!");
+      if (!silent) showToast("Configuração salva!");
     } catch (e) {
-      showToast("Erro ao salvar configuração", "error");
+      if (!silent) showToast("Erro ao salvar configuração", "error");
+      throw e;
     }
   };
 
@@ -1429,8 +1466,8 @@ export default function App() {
                       <button className="text-primary text-xs font-bold hover:underline">Ver Tudo</button>
                     </div>
                     <div className="space-y-4">
-                      {alerts.length > 0 ? alerts.slice(0, 3).map((alert) => (
-                        <div key={`alert-dash-${alert.id}`} className={cn(
+                      {alerts.length > 0 ? alerts.slice(0, 3).map((alert, idx) => (
+                        <div key={`alert-dash-${alert.id || idx}`} className={cn(
                           "flex gap-4 p-3 rounded-lg border",
                           alert.type === 'error' ? "bg-red-50 border-red-100" : 
                           alert.type === 'warning' ? "bg-yellow-50 border-yellow-100" : "bg-blue-50 border-blue-100"
@@ -1508,8 +1545,8 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {doubleShifts.map((shift) => (
-                          <tr key={`double-shift-${shift.id}`} className="group hover:bg-slate-50 transition-colors">
+                        {doubleShifts.map((shift, idx) => (
+                          <tr key={`double-shift-${shift.id || idx}`} className="group hover:bg-slate-50 transition-colors">
                             <td className="py-4 pl-2">
                               <div className="flex items-center gap-3">
                                 <Image src={shift.avatar} width={32} height={32} className="rounded-full bg-slate-200 object-cover" alt={shift.name} referrerPolicy="no-referrer" />
@@ -1718,9 +1755,36 @@ export default function App() {
                   darkMode ? "border-slate-800" : "border-slate-200"
                 )}>
                   <div className="flex items-center gap-4">
-                    <h3 className="text-2xl font-black tracking-tight">
-                      {currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
-                    </h3>
+                    <div className="flex items-center gap-2 group relative">
+                      <h3 className="text-2xl font-black tracking-tight capitalize">
+                        {currentDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                      </h3>
+                      <div className="relative flex items-center">
+                        <input 
+                          type="date" 
+                          value={`${currentDate.getFullYear()}-${(currentDate.getMonth() + 1).toString().padStart(2, '0')}-${currentDate.getDate().toString().padStart(2, '0')}`}
+                          onChange={(e) => {
+                            const [y, m, d] = e.target.value.split('-').map(Number);
+                            const newDate = new Date(y, m - 1, d);
+                            if (!isNaN(newDate.getTime())) {
+                              setCurrentDate(newDate);
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                          title="Escolher data, mês e ano"
+                        />
+                        <button className="p-2 text-slate-400 hover:text-primary transition-colors bg-slate-50 rounded-lg border border-slate-200">
+                          <CalendarDays size={18} />
+                        </button>
+                      </div>
+                      <button 
+                        onClick={() => setCurrentDate(new Date())}
+                        className="p-2 text-slate-400 hover:text-primary transition-colors bg-slate-50 rounded-lg border border-slate-200 text-xs font-bold"
+                        title="Ir para hoje"
+                      >
+                        Hoje
+                      </button>
+                    </div>
                     <div className="flex bg-slate-100 p-1 rounded-lg">
                       <button 
                         onClick={() => setPlannerViewMode('monthly')}
@@ -1747,20 +1811,34 @@ export default function App() {
                       <button 
                         onClick={() => {
                           const newDate = new Date(currentDate);
-                          newDate.setMonth(newDate.getMonth() - 1);
+                          if (plannerViewMode === 'monthly') {
+                            newDate.setMonth(newDate.getMonth() - 1);
+                          } else if (plannerViewMode === 'weekly') {
+                            newDate.setDate(newDate.getDate() - 7);
+                          } else {
+                            newDate.setDate(newDate.getDate() - 1);
+                          }
                           setCurrentDate(newDate);
                         }}
                         className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50"
+                        title="Anterior"
                       >
                         <ChevronLeft size={18} />
                       </button>
                       <button 
                         onClick={() => {
                           const newDate = new Date(currentDate);
-                          newDate.setMonth(newDate.getMonth() + 1);
+                          if (plannerViewMode === 'monthly') {
+                            newDate.setMonth(newDate.getMonth() + 1);
+                          } else if (plannerViewMode === 'weekly') {
+                            newDate.setDate(newDate.getDate() + 7);
+                          } else {
+                            newDate.setDate(newDate.getDate() + 1);
+                          }
                           setCurrentDate(newDate);
                         }}
                         className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50"
+                        title="Próximo"
                       >
                         <ChevronRight size={18} />
                       </button>
@@ -1805,21 +1883,27 @@ export default function App() {
 
                 {/* Planner Grid */}
                 <div className="flex-1 overflow-auto">
-                  <table className="w-full border-separate border-spacing-0 min-w-[1500px]">
+                  <table className={cn(
+                    "w-full border-separate border-spacing-0",
+                    plannerViewMode === 'monthly' ? "min-w-[1500px]" : plannerViewMode === 'weekly' ? "min-w-[800px]" : "min-w-full"
+                  )}>
                     <thead className="sticky top-0 z-20 bg-white shadow-sm">
                       <tr>
                         <th className="w-64 p-4 text-left text-xs font-bold uppercase text-slate-400 border-b border-r border-slate-200 sticky left-0 bg-white">Funcionário</th>
                         {(() => {
                           const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
                           const daysToShow = plannerViewMode === 'monthly' ? daysInMonth : plannerViewMode === 'weekly' ? 7 : 1;
+                          const startDay = plannerViewMode === 'monthly' ? 1 : 
+                                           plannerViewMode === 'weekly' ? Math.max(1, Math.min(daysInMonth - 6, currentDate.getDate() - currentDate.getDay())) :
+                                           currentDate.getDate();
                           return Array.from({ length: daysToShow }).map((_, i) => {
-                            const day = i + 1;
+                            const day = startDay + i;
                             const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
                             const dayName = date.toLocaleString('pt-BR', { weekday: 'short' }).toUpperCase();
                             return (
                               <th key={`header-day-${day}`} className="p-2 text-center border-b border-slate-200 min-w-[80px]">
                                 <span className="block text-xs font-bold text-slate-400">{dayName}</span>
-                                <span className={cn("text-lg", day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && "text-primary font-bold")}>
+                                <span className={cn("text-lg", day === new Date().getDate() && currentDate.getMonth() === new Date().getMonth() && currentDate.getFullYear() === new Date().getFullYear() && "text-primary font-bold")}>
                                   {day.toString().padStart(2, '0')}
                                 </span>
                               </th>
@@ -1829,8 +1913,8 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredAndSortedEmployees.map((emp) => (
-                        <tr key={`planner-emp-${emp.id}`} className="group hover:bg-slate-50/50">
+                      {filteredAndSortedEmployees.map((emp, idx) => (
+                        <tr key={`planner-emp-${emp.id || idx}`} className="group hover:bg-slate-50/50">
                           <td className="p-4 border-b border-r border-slate-200 sticky left-0 bg-white z-10">
                             <div className="flex items-center gap-3">
                               <Image src={emp.avatar} width={32} height={32} className="rounded-full bg-slate-200 object-cover" alt={emp.name} referrerPolicy="no-referrer" />
@@ -1859,10 +1943,13 @@ export default function App() {
                           {(() => {
                             const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
                             const daysToShow = plannerViewMode === 'monthly' ? daysInMonth : plannerViewMode === 'weekly' ? 7 : 1;
-                            return emp.shifts.slice(0, daysToShow).map((shift: any, i: number) => (
+                            const startDay = plannerViewMode === 'monthly' ? 1 : 
+                                             plannerViewMode === 'weekly' ? Math.max(1, Math.min(daysInMonth - 6, currentDate.getDate() - currentDate.getDay())) :
+                                             currentDate.getDate();
+                            return emp.shifts.slice(startDay - 1, startDay - 1 + daysToShow).map((shift: any, i: number) => (
                               <td key={`shift-${emp.id}-${i}`} className="p-1 border-b border-slate-200">
                                 <div onClick={() => {
-                                  setEditingEmployee({ empId: emp.id, dayIndex: i });
+                                  setEditingShift({ empId: emp.id, dayIndex: startDay - 1 + i });
                                   setIsShiftModalOpen(true);
                                 }}>
                                   <ShiftBadge {...shift} />
@@ -1888,8 +1975,11 @@ export default function App() {
                         {(() => {
                           const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
                           const daysToShow = plannerViewMode === 'monthly' ? daysInMonth : plannerViewMode === 'weekly' ? 7 : 1;
+                          const startDay = plannerViewMode === 'monthly' ? 1 : 
+                                           plannerViewMode === 'weekly' ? Math.max(1, Math.min(daysInMonth - 6, currentDate.getDate() - currentDate.getDay())) :
+                                           currentDate.getDate();
                           return Array.from({ length: daysToShow }).map((_, i) => {
-                            const day = i + 1;
+                            const day = startDay + i;
                             const dayEvents = specialSchedules.filter(s => {
                               const [sYear, sMonth, sDay] = s.date.split('-').map(Number);
                               return sDay === day && 
@@ -1908,7 +1998,7 @@ export default function App() {
                                     ))}
                                   </div>
                                 ) : (
-                                  <div className="h-8" />
+                                  <div className="h-6" />
                                 )}
                               </td>
                             );
@@ -2037,8 +2127,8 @@ export default function App() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                  {alerts.filter(a => a.type === 'error').map(alert => (
-                    <div key={`absence-alert-${alert.id}`} className={cn(
+                  {alerts.filter(a => a.type === 'error').map((alert, idx) => (
+                    <div key={`absence-alert-${alert.id || idx}`} className={cn(
                       "p-4 rounded-xl border flex items-center justify-between",
                       darkMode ? "bg-slate-900 border-red-900/30" : "bg-white border-red-100"
                     )}>
@@ -2083,8 +2173,8 @@ export default function App() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                  {alerts.filter(a => a.type === 'warning').map(alert => (
-                    <div key={`overtime-alert-${alert.id}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex items-center justify-between">
+                  {alerts.filter(a => a.type === 'warning').map((alert, idx) => (
+                    <div key={`overtime-alert-${alert.id || idx}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
                           <Clock size={20} />
@@ -2181,8 +2271,17 @@ export default function App() {
                           <p className="font-semibold">Notificações por E-mail</p>
                           <p className="text-sm text-slate-500">Receba alertas de ausências por e-mail</p>
                         </div>
-                        <div className="w-12 h-6 bg-primary rounded-full relative cursor-pointer">
-                          <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+                        <div 
+                          onClick={() => setEmailNotifications(!emailNotifications)}
+                          className={cn(
+                            "w-12 h-6 rounded-full relative cursor-pointer transition-colors",
+                            emailNotifications ? "bg-primary" : "bg-slate-300"
+                          )}
+                        >
+                          <div className={cn(
+                            "absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all",
+                            emailNotifications ? "right-1" : "left-1"
+                          )} />
                         </div>
                       </div>
                       <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
@@ -2341,7 +2440,18 @@ export default function App() {
 
                   <div className="pt-6 border-t border-slate-100 flex justify-end">
                     <button 
-                      onClick={() => showToast("Configurações salvas com sucesso!")}
+                      onClick={async () => {
+                        try {
+                          await Promise.all([
+                            saveConfig('rh_email', rhEmail, true),
+                            saveConfig('dark_mode', darkMode.toString(), true),
+                            saveConfig('email_notifications', emailNotifications.toString(), true)
+                          ]);
+                          showToast("Configurações salvas com sucesso!");
+                        } catch (error) {
+                          showToast("Erro ao salvar configurações", "error");
+                        }
+                      }}
                       className="bg-primary text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
                     >
                       Salvar Alterações
@@ -2657,7 +2767,11 @@ export default function App() {
                 ].map(s => (
                   <button
                     key={`shift-type-${s.type}`}
-                    onClick={() => updateShift(editingEmployee.empId, editingEmployee.dayIndex, s)}
+                    onClick={() => {
+                      updateShift(editingShift.empId, editingShift.dayIndex, s);
+                      setIsShiftModalOpen(false);
+                      setEditingShift(null);
+                    }}
                     className="p-4 border border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left"
                   >
                     <p className="font-bold text-sm">{s.label}</p>
