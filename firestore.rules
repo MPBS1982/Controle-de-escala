@@ -1,0 +1,192 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: employees
+    // Fields: name (string), avatar (string), sectorId (string), roleId (string)
+    //
+    // Collection: sectors
+    // Fields: name (string), color (string), icon (string)
+    //
+    // Collection: roles
+    // Fields: name (string)
+    //
+    // Collection: shifts
+    // Fields: employeeId (string), day (int), month (int), year (int), type (string), time (string), overtime (int)
+    //
+    // Collection: special_schedules
+    // Fields: name (string), date (string), status (string)
+    //
+    // Collection: special_schedule_assignments
+    // Fields: specialScheduleId (string), employeeId (string)
+    //
+    // Collection: alerts
+    // Fields: type (string), message (string), date (string), employeeId (string)
+    //
+    // Collection: config
+    // Fields: value (string)
+    //
+    // Collection: users
+    // Fields: name (string), email (string), role (string), avatar (string)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          (request.auth.token.email == "sistemas@talhodelicatessen.com.br" && request.auth.token.email_verified == true));
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidEmployee(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.sectorId is string && data.roleId is string &&
+             (data.avatar == null || (data.avatar is string && data.avatar.size() < 500));
+    }
+
+    function isValidSector(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
+             data.color is string && data.color.size() < 20 &&
+             (data.icon == null || (data.icon is string && data.icon.size() < 50));
+    }
+
+    function isValidRole(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 50;
+    }
+
+    function isValidShift(data) {
+      return data.employeeId is string &&
+             data.day is int && data.day >= 1 && data.day <= 31 &&
+             data.month is int && data.month >= 1 && data.month <= 12 &&
+             data.year is int &&
+             data.type is string && data.type.size() < 50 &&
+             (data.time == null || (data.time is string && data.time.size() < 20)) &&
+             (data.overtime == null || data.overtime is int);
+    }
+
+    function isValidSpecialSchedule(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.date is string && data.date.size() < 50 &&
+             (data.status == null || (data.status is string && data.status.size() < 50));
+    }
+
+    function isValidAssignment(data) {
+      return data.specialScheduleId is string && data.employeeId is string;
+    }
+
+    function isValidAlert(data) {
+      return data.type in ['error', 'warning', 'info'] &&
+             data.message is string && data.message.size() < 500 &&
+             data.date is string &&
+             (data.employeeId == null || data.employeeId is string);
+    }
+
+    function isValidConfig(data) {
+      return data.value is string && data.value.size() < 1000;
+    }
+
+    function isValidUser(data, userId) {
+      return data.uid is string && data.uid == userId &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && data.email.size() < 100 &&
+             data.role in ['admin', 'manager', 'user'] &&
+             (!('avatar' in data) || (data.avatar is string && data.avatar.size() < 500)) &&
+             (!('createdAt' in data) || data.createdAt is timestamp);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /employees/{employeeId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidEmployee(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /sectors/{sectorId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidSector(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /roles/{roleId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidRole(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /shifts/{shiftId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidShift(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /special_schedules/{scheduleId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidSpecialSchedule(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /special_schedule_assignments/{assignmentId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidAssignment(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /alerts/{alertId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidAlert(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /config/{configKey} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidConfig(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data, userId) && 
+                      (isOwner(userId) || isAdmin()) &&
+                      (isAdmin() || request.resource.data.role == 'user');
+      allow update: if isAuthenticated() && isValidUser(request.resource.data, userId) && 
+                      (isOwner(userId) || isAdmin()) &&
+                      (isAdmin() || request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

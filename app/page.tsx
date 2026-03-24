@@ -39,6 +39,31 @@ import Image from 'next/image';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+// Firebase Imports
+import { 
+  auth, 
+  db, 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  signOut, 
+  onAuthStateChanged,
+  collection,
+  doc,
+  setDoc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  onSnapshot,
+  serverTimestamp,
+  increment,
+  writeBatch
+} from '@/firebase';
+import ErrorBoundary from '@/components/ErrorBoundary';
+
 // --- Types ---
 
 type View = 'dashboard' | 'planner' | 'employees' | 'absences' | 'overtime' | 'sectors' | 'special_schedules' | 'settings' | 'roles' | 'users' | 'reports';
@@ -438,57 +463,111 @@ export default function App() {
   const [rhEmail, setRhEmail] = useState('rh@talhodelicatessen.com.br');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [selectedEmployeesForSpecial, setSelectedEmployeesForSpecial] = useState<number[]>([]);
-
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
 
   const filteredAndSortedEmployees = useMemo(() => {
-    let result = employees.filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
+    let result = employees.map(emp => ({
+      ...emp,
+      role: roles.find(r => r.id === emp.roleId)?.name || 'N/A'
+    })).filter(e => e.name.toLowerCase().includes(searchQuery.toLowerCase()));
     
     if (plannerSectorFilter !== 'all') {
-      result = result.filter(e => e.sector_id === parseInt(plannerSectorFilter));
+      result = result.filter(e => e.sectorId === plannerSectorFilter);
     }
 
     if (sortAlphabetical) {
       result = [...result].sort((a, b) => a.name.localeCompare(b.name));
     }
     return result;
-  }, [employees, searchQuery, sortAlphabetical, plannerSectorFilter]);
+  }, [employees, searchQuery, sortAlphabetical, plannerSectorFilter, roles]);
+
+  // Error handling for Firestore
+  enum OperationType {
+    CREATE = 'create',
+    UPDATE = 'update',
+    DELETE = 'delete',
+    LIST = 'list',
+    GET = 'get',
+    WRITE = 'write',
+  }
+
+  const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
+    const errInfo = {
+      error: error instanceof Error ? error.message : String(error),
+      authInfo: {
+        userId: auth.currentUser?.uid,
+        email: auth.currentUser?.email,
+        emailVerified: auth.currentUser?.emailVerified,
+        isAnonymous: auth.currentUser?.isAnonymous,
+        tenantId: auth.currentUser?.tenantId,
+        providerInfo: auth.currentUser?.providerData.map(provider => ({
+          providerId: provider.providerId,
+          displayName: provider.displayName,
+          email: provider.email,
+          photoUrl: provider.photoURL
+        })) || []
+      },
+      operationType,
+      path
+    };
+    console.error('Firestore Error: ', JSON.stringify(errInfo));
+    throw new Error(JSON.stringify(errInfo));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
     try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(loginData)
-      });
-      if (res.ok) {
-        const user = await res.json();
-        setCurrentUser(user);
-        localStorage.setItem('shiftmaster_user', JSON.stringify(user));
-        showToast(`Bem-vindo, ${user.name}!`);
-      } else {
-        showToast("Credenciais inválidas", "error");
-      }
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      showToast(`Bem-vindo!`);
     } catch (error) {
-      showToast("Erro ao fazer login", "error");
+      console.error("Login error:", error);
+      showToast("Erro ao fazer login com Google", "error");
     } finally {
       setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('shiftmaster_user');
-    showToast("Sessão encerrada");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setCurrentUser(null);
+      showToast("Sessão encerrada");
+    } catch (error) {
+      showToast("Erro ao sair", "error");
+    }
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('shiftmaster_user');
-    if (savedUser) {
-      setCurrentUser(JSON.parse(savedUser));
-    }
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // Check if user exists in Firestore, if not create them
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (!userDoc.exists()) {
+            const newUser = {
+              uid: user.uid,
+              name: user.displayName || 'Usuário',
+              email: user.email || '',
+              role: 'user', // Default role
+              createdAt: serverTimestamp()
+            };
+            await setDoc(doc(db, 'users', user.uid), newUser);
+            setCurrentUser(newUser);
+          } else {
+            setCurrentUser(userDoc.data());
+          }
+        } catch (error) {
+          handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
   }, []);
 
   // Handle ChunkLoadError
@@ -503,88 +582,115 @@ export default function App() {
     return () => window.removeEventListener('error', handleChunkError);
   }, []);
 
-  // Fetch data on mount and when currentDate changes
+  // Real-time listeners for Firestore (Static Data)
   useEffect(() => {
-    if (!currentUser) return;
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        // Fetch email status and config separately with their own error handling
-        try {
-          const statusRes = await fetch('/api/email-status');
-          if (statusRes.ok) {
-            const statusData = await statusRes.json();
-            setIsEmailActive(statusData.active);
-          }
-        } catch (e) {
-          console.error("Error fetching email status:", e);
-        }
+    if (!isAuthReady || !currentUser) return;
 
-        try {
-          const configRes = await fetch('/api/config');
-          if (configRes.ok) {
-            const configData = await configRes.json();
-            if (configData.rh_email) setRhEmail(configData.rh_email);
-            if (configData.dark_mode) setDarkMode(configData.dark_mode === 'true');
-            if (configData.email_notifications) setEmailNotifications(configData.email_notifications === 'true');
-          }
-        } catch (e) {
-          console.error("Error fetching config:", e);
-        }
+    const unsubscribers: (() => void)[] = [];
 
-        const month = currentDate.getMonth() + 1;
-        const year = currentDate.getFullYear();
-        
-        const endpoints = [
-          { name: 'employees', url: `/api/employees?month=${month}&year=${year}` },
-          { name: 'sectors', url: '/api/sectors' },
-          { name: 'special-schedules', url: '/api/special-schedules' },
-          { name: 'alerts', url: '/api/alerts' },
-          { name: 'roles', url: '/api/roles' },
-          { name: 'users', url: '/api/users' }
-        ];
+    // Listen to sectors
+    const sectorsUnsub = onSnapshot(collection(db, 'sectors'), (snapshot) => {
+      setSectors(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'sectors'));
+    unsubscribers.push(sectorsUnsub);
 
-        const results = await Promise.all(
-          endpoints.map(async (ep) => {
-            try {
-              const res = await fetch(ep.url);
-              if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                const msg = errorData.error || res.statusText;
-                console.error(`Error fetching ${ep.name}: ${res.status} ${msg}`);
-                return null;
-              }
-              const contentType = res.headers.get("content-type");
-              if (contentType && contentType.indexOf("application/json") !== -1) {
-                return await res.json();
-              } else {
-                console.error(`Error fetching ${ep.name}: Response not JSON`);
-                return null;
-              }
-            } catch (e) {
-              console.error(`Network error fetching ${ep.name}:`, e);
-              return null;
-            }
-          })
-        );
+    // Listen to roles
+    const rolesUnsub = onSnapshot(collection(db, 'roles'), (snapshot) => {
+      setRoles(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'roles'));
+    unsubscribers.push(rolesUnsub);
 
-        const [empData, secData, specData, alertData, roleData, userData] = results;
+    // Listen to users
+    const usersUnsub = onSnapshot(collection(db, 'users'), (snapshot) => {
+      setAppUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
+    unsubscribers.push(usersUnsub);
 
-        if (empData) setEmployees(empData);
-        if (secData) setSectors(secData);
-        if (roleData) setRoles(roleData);
-        if (userData) setAppUsers(userData);
-        if (specData) setSpecialSchedules(specData);
-        if (alertData) setAlerts(alertData);
-      } catch (error) {
-        console.error("Unexpected error in fetchData:", error);
-        showToast("Erro ao carregar dados. Verifique sua conexão.", "error");
-      } finally {
-        setIsLoading(false);
-      }
+    // Listen to config
+    const configUnsub = onSnapshot(collection(db, 'config'), (snapshot) => {
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (doc.id === 'rh_email') setRhEmail(data.value);
+        if (doc.id === 'dark_mode') setDarkMode(data.value === 'true');
+        if (doc.id === 'email_notifications') setEmailNotifications(data.value === 'true');
+        if (doc.id === 'email_status') setIsEmailActive(data.active);
+      });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'config'));
+    unsubscribers.push(configUnsub);
+
+    // Listen to special schedules
+    const specialUnsub = onSnapshot(collection(db, 'special_schedules'), (snapshot) => {
+      setSpecialSchedules(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'special_schedules'));
+    unsubscribers.push(specialUnsub);
+
+    // Listen to alerts
+    const alertsUnsub = onSnapshot(collection(db, 'alerts'), (snapshot) => {
+      setAlerts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'alerts'));
+    unsubscribers.push(alertsUnsub);
+
+    return () => unsubscribers.forEach(unsub => unsub());
+  }, [currentUser, isAuthReady]);
+
+  // Real-time listeners for Firestore (Dynamic Data - Employees & Shifts)
+  useEffect(() => {
+    if (!isAuthReady || !currentUser) return;
+
+    setIsLoading(true);
+
+    const month = currentDate.getMonth() + 1;
+    const year = currentDate.getFullYear();
+
+    // Listen to employees and their shifts efficiently
+    let currentEmployees: any[] = [];
+    let currentShifts: any[] = [];
+
+    const updateEmployeesWithShifts = () => {
+      const employeesWithShifts = currentEmployees.map(emp => {
+        const empShifts = currentShifts.filter(s => s.employeeId === emp.id);
+        const shiftsMap = new Map();
+        empShifts.forEach(s => shiftsMap.set(s.day, s));
+
+        const shiftsArray = Array.from({ length: 31 }, (_, i) => {
+          const day = i + 1;
+          return shiftsMap.get(day) || { type: 'empty' };
+        });
+
+        return { ...emp, shifts: shiftsArray };
+      });
+      setEmployees(employeesWithShifts);
+      setIsLoading(false);
     };
-    fetchData();
-  }, [currentDate, currentUser]);
+
+    const employeesUnsub = onSnapshot(collection(db, 'employees'), (snapshot) => {
+      currentEmployees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      updateEmployeesWithShifts();
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'employees'));
+
+    const shiftsQuery = query(
+      collectionGroup(db, 'shifts'),
+      where('month', '==', month),
+      where('year', '==', year)
+    );
+
+    const shiftsUnsub = onSnapshot(shiftsQuery, (snapshot) => {
+      currentShifts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        employeeId: doc.ref.parent.parent?.id,
+        ...doc.data()
+      }));
+      updateEmployeesWithShifts();
+    }, (error) => {
+      console.error('Error fetching shifts via collectionGroup:', error);
+      handleFirestoreError(error, OperationType.LIST, 'collectionGroup/shifts');
+    });
+
+    return () => {
+      employeesUnsub();
+      shiftsUnsub();
+    };
+  }, [currentDate.getMonth(), currentDate.getFullYear(), currentUser?.uid, isAuthReady]);
 
   // Modals state
   const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
@@ -596,24 +702,6 @@ export default function App() {
   const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
   const [isDoubleShiftModalOpen, setIsDoubleShiftModalOpen] = useState(false);
   const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
-  const setupSupabase = async () => {
-    try {
-      setIsLoading(true);
-      const res = await fetch('/api/setup-supabase');
-      const data = await res.json();
-      if (data.success) {
-        showToast("Supabase inicializado com sucesso!");
-        window.location.reload();
-      } else {
-        showToast(`Erro: ${data.error}`, "error");
-      }
-    } catch (e) {
-      showToast("Erro ao conectar com Supabase", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [editingShift, setEditingShift] = useState<any>(null);
   const [editingSector, setEditingSector] = useState<any>(null);
@@ -624,260 +712,245 @@ export default function App() {
   // CRUD Functions
   const addEmployee = async (employeeData: any) => {
     try {
-      if (!employeeData.roleId || isNaN(employeeData.roleId)) {
+      if (!employeeData.roleId) {
         showToast("Por favor, selecione um cargo válido.", "error");
         return;
       }
-      console.log("Saving employee:", employeeData);
-      const res = await fetch('/api/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingEmployee ? { ...employeeData, id: editingEmployee.id } : employeeData)
-      });
-      if (!res.ok) throw new Error("Failed to save employee");
-      const saved = await res.json();
-      const roleName = roles.find(r => r.id === saved.role_id)?.name;
-      const updatedEmp = { 
-        ...saved, 
-        role: roleName, 
-        roleId: saved.role_id, 
-        sectorId: saved.sector_id 
+      
+      const data = {
+        name: employeeData.name,
+        email: employeeData.email || '',
+        roleId: employeeData.roleId,
+        sectorId: employeeData.sectorId,
+        updatedAt: serverTimestamp()
       };
 
       if (editingEmployee) {
-        setEmployees(employees.map(e => e.id === saved.id ? { ...e, ...updatedEmp } : e));
+        await updateDoc(doc(db, 'employees', editingEmployee.id), data);
         showToast("Colaborador atualizado!");
       } else {
-        setEmployees([...employees, { ...updatedEmp, shifts: Array(31).fill({ type: 'empty' }) }]);
+        await addDoc(collection(db, 'employees'), {
+          ...data,
+          createdAt: serverTimestamp()
+        });
         showToast("Colaborador adicionado!");
       }
       setIsEmployeeModalOpen(false);
       setEditingEmployee(null);
     } catch (e) { 
-      console.error(e);
-      showToast("Erro ao salvar colaborador. Verifique os dados.", "error");
+      handleFirestoreError(e, editingEmployee ? OperationType.UPDATE : OperationType.CREATE, 'employees');
     }
   };
 
   const addRole = async (roleData: any) => {
     try {
-      console.log("Saving role:", roleData);
-      const res = await fetch('/api/roles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingRole ? { ...roleData, id: editingRole.id } : roleData)
-      });
-      if (!res.ok) throw new Error("Failed to save role");
-      const saved = await res.json();
       if (editingRole) {
-        setRoles(roles.map(r => r.id === saved.id ? saved : r));
+        await updateDoc(doc(db, 'roles', editingRole.id), roleData);
         showToast("Cargo atualizado!");
       } else {
-        setRoles([...roles, saved]);
+        await addDoc(collection(db, 'roles'), roleData);
         showToast("Cargo adicionado!");
       }
       setIsRoleModalOpen(false);
       setEditingRole(null);
     } catch (e) {
-      console.error(e);
-      showToast("Erro ao salvar cargo", "error");
+      handleFirestoreError(e, editingRole ? OperationType.UPDATE : OperationType.CREATE, 'roles');
     }
   };
 
-  const deleteRole = async (id: number) => {
+  const deleteRole = async (id: string) => {
     try {
-      await fetch(`/api/roles?id=${id}`, { method: 'DELETE' });
-      setRoles(roles.filter(r => r.id !== id));
+      await deleteDoc(doc(db, 'roles', id));
       showToast("Cargo removido");
     } catch (e) {
-      showToast("Erro ao remover cargo", "error");
+      handleFirestoreError(e, OperationType.DELETE, `roles/${id}`);
     }
   };
 
   const addUser = async (userData: any) => {
     try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingUser ? { ...userData, id: editingUser.id } : userData)
-      });
-      const saved = await res.json();
       if (editingUser) {
-        setAppUsers(appUsers.map(u => u.id === saved.id ? saved : u));
+        await updateDoc(doc(db, 'users', editingUser.id), {
+          role: userData.role,
+          name: userData.name
+        });
         showToast("Usuário atualizado!");
       } else {
-        setAppUsers([...appUsers, saved]);
-        showToast("Usuário adicionado!");
+        showToast("Novos usuários devem fazer login com Google primeiro para serem registrados.", "info");
       }
       setIsUserModalOpen(false);
       setEditingUser(null);
     } catch (e) {
-      showToast("Erro ao salvar usuário", "error");
+      handleFirestoreError(e, editingUser ? OperationType.UPDATE : OperationType.CREATE, 'users');
     }
   };
 
-  const deleteUser = async (id: number) => {
+  const seedDatabase = async () => {
     try {
-      await fetch(`/api/users?id=${id}`, { method: 'DELETE' });
-      setAppUsers(appUsers.filter(u => u.id !== id));
+      setIsLoading(true);
+      const batch = writeBatch(db);
+
+      // 1. Sectors
+      const sectorRefs = [];
+      const sectorNames = ['Atendimento', 'Cozinha', 'Administrativo', 'Logística'];
+      for (const name of sectorNames) {
+        const ref = doc(collection(db, 'sectors'));
+        batch.set(ref, { name, color: '#3b82f6', icon: 'Layers' });
+        sectorRefs.push(ref.id);
+      }
+
+      // 2. Roles
+      const roleRefs = [];
+      const roleNames = ['Gerente', 'Atendente', 'Cozinheiro', 'Auxiliar'];
+      for (const name of roleNames) {
+        const ref = doc(collection(db, 'roles'));
+        batch.set(ref, { name });
+        roleRefs.push(ref.id);
+      }
+
+      // 3. Employees
+      const employeeNames = ['João Silva', 'Maria Oliveira', 'Carlos Souza', 'Ana Santos'];
+      for (let i = 0; i < employeeNames.length; i++) {
+        const ref = doc(collection(db, 'employees'));
+        batch.set(ref, {
+          name: employeeNames[i],
+          email: `${employeeNames[i].toLowerCase().replace(' ', '.')}@exemplo.com`,
+          sectorId: sectorRefs[i % sectorRefs.length],
+          roleId: roleRefs[i % roleRefs.length],
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      }
+
+      await batch.commit();
+      showToast("Banco de dados populado com sucesso!");
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, 'seed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteUser = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'users', id));
       showToast("Usuário removido");
     } catch (e) {
-      showToast("Erro ao remover usuário", "error");
+      handleFirestoreError(e, OperationType.DELETE, `users/${id}`);
     }
   };
 
-  const deleteEmployee = async (id: number) => {
+  const deleteEmployee = async (id: string) => {
     try {
-      await fetch(`/api/employees?id=${id}`, { method: 'DELETE' });
-      setEmployees(employees.filter(e => e.id !== id));
+      await deleteDoc(doc(db, 'employees', id));
       showToast("Colaborador removido.");
     } catch (e) { 
-      console.error(e);
-      showToast("Erro ao remover colaborador", "error");
+      handleFirestoreError(e, OperationType.DELETE, `employees/${id}`);
     }
   };
 
   const addSector = async (name: string) => {
     try {
       if (editingSector) {
-        const res = await fetch('/api/sectors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editingSector.id, name })
-        });
-        const saved = await res.json();
-        setSectors(sectors.map(s => s.id === saved.id ? saved : s));
-        setEditingSector(null);
+        await updateDoc(doc(db, 'sectors', editingSector.id), { name });
         showToast("Setor atualizado.");
       } else {
-        const res = await fetch('/api/sectors', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name })
-        });
-        const saved = await res.json();
-        setSectors([...sectors, saved]);
+        await addDoc(collection(db, 'sectors'), { name });
         showToast("Setor criado.");
       }
       setIsSectorModalOpen(false);
+      setEditingSector(null);
     } catch (e) { 
-      console.error(e);
-      showToast("Erro ao processar setor", "error");
+      handleFirestoreError(e, editingSector ? OperationType.UPDATE : OperationType.CREATE, 'sectors');
     }
   };
 
-  const deleteSector = async (id: number) => {
+  const deleteSector = async (id: string) => {
     try {
-      await fetch(`/api/sectors?id=${id}`, { method: 'DELETE' });
-      setSectors(sectors.filter(s => s.id !== id));
+      await deleteDoc(doc(db, 'sectors', id));
       showToast("Setor removido.");
     } catch (e) { 
-      console.error(e);
-      showToast("Erro ao remover setor", "error");
+      handleFirestoreError(e, OperationType.DELETE, `sectors/${id}`);
     }
   };
 
   const addSpecialSchedule = async (schedule: any) => {
     try {
-      const payload = { ...schedule, employeeIds: selectedEmployeesForSpecial };
+      const payload = { 
+        ...schedule, 
+        employeeIds: selectedEmployeesForSpecial,
+        updatedAt: serverTimestamp()
+      };
       if (editingSpecialSchedule) {
-        const res = await fetch('/api/special-schedules', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...payload, id: editingSpecialSchedule.id })
-        });
-        const updated = await res.json();
-        setSpecialSchedules(specialSchedules.map(s => s.id === updated.id ? { ...updated, employees: employees.filter(e => selectedEmployeesForSpecial.includes(e.id)) } : s));
-        setEditingSpecialSchedule(null);
+        await updateDoc(doc(db, 'special_schedules', editingSpecialSchedule.id), payload);
         showToast("Escala especial atualizada.");
       } else {
-        const res = await fetch('/api/special-schedules', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+        await addDoc(collection(db, 'special_schedules'), {
+          ...payload,
+          createdAt: serverTimestamp()
         });
-        const saved = await res.json();
-        setSpecialSchedules([...specialSchedules, { ...saved, employees: employees.filter(e => selectedEmployeesForSpecial.includes(e.id)) }]);
         showToast("Escala especial criada.");
       }
       setIsSpecialScheduleModalOpen(false);
+      setEditingSpecialSchedule(null);
       setSelectedEmployeesForSpecial([]);
     } catch (e) { 
-      console.error(e);
-      showToast("Erro ao salvar escala", "error");
+      handleFirestoreError(e, editingSpecialSchedule ? OperationType.UPDATE : OperationType.CREATE, 'special_schedules');
     }
   };
 
   const saveConfig = async (key: string, value: string, silent = false) => {
     try {
-      await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, value })
-      });
-      if (key === 'rh_email') setRhEmail(value);
+      await setDoc(doc(db, 'config', key), { value, updatedAt: serverTimestamp() });
       if (!silent) showToast("Configuração salva!");
     } catch (e) {
-      if (!silent) showToast("Erro ao salvar configuração", "error");
-      throw e;
+      handleFirestoreError(e, OperationType.WRITE, `config/${key}`);
     }
   };
 
-  const deleteSpecialSchedule = async (id: number) => {
+  const deleteSpecialSchedule = async (id: string) => {
     try {
-      await fetch(`/api/special-schedules?id=${id}`, { method: 'DELETE' });
-      setSpecialSchedules(specialSchedules.filter(s => s.id !== id));
+      await deleteDoc(doc(db, 'special_schedules', id));
       showToast("Escala especial removida.");
     } catch (e) { 
-      console.error(e);
-      showToast("Erro ao remover escala", "error");
+      handleFirestoreError(e, OperationType.DELETE, `special_schedules/${id}`);
     }
   };
 
-  const updateShift = async (empId: number, dayIndex: number, newShift: any) => {
+  const updateShift = async (empId: string, dayIndex: number, newShift: any) => {
     try {
-      const res = await fetch('/api/shifts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          employeeId: empId,
-          day: dayIndex + 1,
-          month: currentDate.getMonth() + 1,
-          year: currentDate.getFullYear(),
-          type: newShift.type,
-          time: newShift.time,
-          overtime: newShift.overtime || false
-        })
+      const day = dayIndex + 1;
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+      const shiftId = `${year}-${month}-${day}`;
+      
+      const shiftRef = doc(db, `employees/${empId}/shifts`, shiftId);
+      await setDoc(shiftRef, {
+        day,
+        month,
+        year,
+        type: newShift.type,
+        time: newShift.time,
+        overtime: newShift.overtime || false,
+        updatedAt: serverTimestamp()
       });
       
-      setEmployees(employees.map(emp => {
-        if (emp.id === empId) {
-          const newShifts = [...emp.shifts];
-          newShifts[dayIndex] = newShift;
-          return { ...emp, shifts: newShifts };
-        }
-        return emp;
-      }));
-      setIsShiftModalOpen(false);
-      showToast("Turno atualizado.");
-    } catch (e) { 
-      console.error(e);
-      showToast("Erro ao atualizar turno", "error");
+      showToast("Escala atualizada!");
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `employees/${empId}/shifts`);
     }
   };
 
-  const removeAlert = async (id: number) => {
+  const removeAlert = async (id: string) => {
     try {
-      await fetch(`/api/alerts?id=${id}`, { method: 'DELETE' });
-      setAlerts(alerts.filter(a => a.id !== id));
+      await deleteDoc(doc(db, 'alerts', id));
       showToast("Alerta removido.");
     } catch (e) { 
-      console.error(e);
-      showToast("Erro ao remover alerta", "error");
+      handleFirestoreError(e, OperationType.DELETE, `alerts/${id}`);
     }
   };
 
-  const registerAbsence = async (employeeId: number, reason: string) => {
+  const registerAbsence = async (employeeId: string, reason: string) => {
     const employee = employees.find(e => e.id === employeeId);
     if (!employee) return;
 
@@ -909,23 +982,22 @@ export default function App() {
         showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-      const res = await fetch('/api/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'error',
-          title: `Falta: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`
-        })
+      await addDoc(collection(db, 'alerts'), {
+        type: 'error',
+        title: `Falta: ${employee.name}`,
+        description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
+        employeeId: employee.id,
+        createdAt: serverTimestamp()
       });
-      const saved = await res.json();
-      setAlerts([saved, ...alerts]);
+      
       showToast("Ausência registrada e RH notificado por e-mail!");
       setIsAbsenceModalOpen(false);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      handleFirestoreError(e, OperationType.CREATE, 'alerts');
+    }
   };
   
-  const registerDoubleShift = async (employeeId: number, date: string, sectorId: number) => {
+  const registerDoubleShift = async (employeeId: string, date: string, sectorId: string) => {
     const employee = employees.find(e => e.id === employeeId);
     const sector = sectors.find(s => s.id === sectorId);
     if (!employee || !sector) return;
@@ -958,21 +1030,20 @@ export default function App() {
         showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-      const res = await fetch('/api/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'warning',
-          title: `Dobra: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-          sectorId: sector.id
-        })
+      await addDoc(collection(db, 'alerts'), {
+        type: 'warning',
+        title: `Dobra: ${employee.name}`,
+        description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+        sectorId: sector.id,
+        employeeId: employee.id,
+        createdAt: serverTimestamp()
       });
-      const saved = await res.json();
-      setAlerts([saved, ...alerts]);
+      
       showToast("Dobra registrada e RH notificado por e-mail!");
       setIsDoubleShiftModalOpen(false);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      handleFirestoreError(e, OperationType.CREATE, 'alerts');
+    }
   };
 
   const generateEmployeeReport = () => {
@@ -1041,7 +1112,7 @@ export default function App() {
     showToast("Relatório de escalas especiais gerado!");
   };
 
-  const requestOvertime = async (employeeId: number, date: string, sectorId: number) => {
+  const requestOvertime = async (employeeId: string, date: string, sectorId: string) => {
     const employee = employees.find(e => e.id === employeeId);
     const sector = sectors.find(s => s.id === sectorId);
     if (!employee || !sector) return;
@@ -1074,22 +1145,32 @@ export default function App() {
         showToast(`Alerta: A solicitação foi feita, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-      const res = await fetch('/api/alerts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'warning',
-          title: `Solicitação de Hora Extra: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-          sectorId: sector.id
-        })
+      await addDoc(collection(db, 'alerts'), {
+        type: 'warning',
+        title: `Solicitação de Hora Extra: ${employee.name}`,
+        description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+        sectorId: sector.id,
+        employeeId: employee.id,
+        createdAt: serverTimestamp()
       });
-      const saved = await res.json();
-      setAlerts([saved, ...alerts]);
+      
       showToast("Solicitação enviada ao RH por e-mail!");
       setIsOvertimeModalOpen(false);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      handleFirestoreError(e, OperationType.CREATE, 'alerts');
+    }
   };
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return (
@@ -1107,43 +1188,20 @@ export default function App() {
             <p className="text-slate-500 text-sm">Acesse sua conta para gerenciar escalas</p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Usuário</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
-                  placeholder="Seu nome de usuário"
-                  value={loginData.name}
-                  onChange={(e) => setLoginData({ ...loginData, name: e.target.value })}
-                />
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Senha</label>
-              <div className="relative">
-                <input
-                  type="password"
-                  required
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all text-sm"
-                  placeholder="••••••••"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                />
-                <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={isLoggingIn}
-              className="w-full py-3 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {isLoggingIn ? <Zap className="animate-spin" size={18} /> : "Entrar no Sistema"}
-            </button>
-          </form>
+          <button
+            onClick={handleLogin}
+            disabled={isLoggingIn}
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-gray-100 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-100 transition-all group disabled:opacity-50"
+          >
+            {isLoggingIn ? (
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <>
+                <Image src="https://www.google.com/favicon.ico" alt="Google" width={20} height={20} />
+                Entrar com Google
+              </>
+            )}
+          </button>
           
           <div className="mt-8 pt-6 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-400">
@@ -1156,10 +1214,11 @@ export default function App() {
   }
 
   return (
-    <div className={cn(
-      "flex h-screen overflow-hidden font-display relative transition-colors duration-200",
-      darkMode ? "bg-slate-950 text-slate-100" : "bg-background-light text-slate-900"
-    )}>
+    <ErrorBoundary>
+      <div className={cn(
+        "flex h-screen overflow-hidden font-display relative transition-colors duration-200",
+        darkMode ? "bg-slate-950 text-slate-100" : "bg-background-light text-slate-900"
+      )}>
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -1467,7 +1526,7 @@ export default function App() {
                     </div>
                     <div className="space-y-4">
                       {alerts.length > 0 ? alerts.slice(0, 3).map((alert, idx) => (
-                        <div key={`alert-dash-${alert.id || idx}`} className={cn(
+                        <div key={`alert-dash-${alert.id ?? `idx-${idx}`}`} className={cn(
                           "flex gap-4 p-3 rounded-lg border",
                           alert.type === 'error' ? "bg-red-50 border-red-100" : 
                           alert.type === 'warning' ? "bg-yellow-50 border-yellow-100" : "bg-blue-50 border-blue-100"
@@ -1546,7 +1605,7 @@ export default function App() {
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {doubleShifts.map((shift, idx) => (
-                          <tr key={`double-shift-${shift.id || idx}`} className="group hover:bg-slate-50 transition-colors">
+                          <tr key={`double-shift-${shift.id ?? `idx-${idx}`}`} className="group hover:bg-slate-50 transition-colors">
                             <td className="py-4 pl-2">
                               <div className="flex items-center gap-3">
                                 <Image src={shift.avatar} width={32} height={32} className="rounded-full bg-slate-200 object-cover" alt={shift.name} referrerPolicy="no-referrer" />
@@ -1705,13 +1764,19 @@ export default function App() {
                     <tbody className="divide-y divide-slate-100">
                       {appUsers.map(user => (
                         <tr key={`user-${user.id}`} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-4 pl-2 font-medium">{user.name}</td>
+                          <td className="py-4 pl-2">
+                            <div className="flex flex-col">
+                              <span className="font-medium">{user.name}</span>
+                              <span className="text-xs text-slate-400">{user.email}</span>
+                            </div>
+                          </td>
                           <td className="py-4">
                             <span className={cn(
-                              "px-2 py-1 rounded-full text-[10px] font-bold",
-                              user.isMaster ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+                              "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
+                              user.role === 'admin' ? "bg-purple-100 text-purple-700" : 
+                              user.role === 'manager' ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
                             )}>
-                              {user.isMaster ? "MASTER" : "ADMINISTRADOR"}
+                              {user.role || 'user'}
                             </span>
                           </td>
                           <td className="py-4 text-right pr-2">
@@ -1722,7 +1787,7 @@ export default function App() {
                               >
                                 <Edit2 size={16} />
                               </button>
-                              {user.name !== currentUser.name && (
+                              {user.uid !== currentUser.uid && (
                                 <button 
                                   onClick={() => deleteUser(user.id)}
                                   className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-white rounded-lg transition-all"
@@ -1914,7 +1979,7 @@ export default function App() {
                     </thead>
                     <tbody>
                       {filteredAndSortedEmployees.map((emp, idx) => (
-                        <tr key={`planner-emp-${emp.id || idx}`} className="group hover:bg-slate-50/50">
+                        <tr key={`planner-emp-${emp.id ?? `idx-${idx}`}`} className="group hover:bg-slate-50/50">
                           <td className="p-4 border-b border-r border-slate-200 sticky left-0 bg-white z-10">
                             <div className="flex items-center gap-3">
                               <Image src={emp.avatar} width={32} height={32} className="rounded-full bg-slate-200 object-cover" alt={emp.name} referrerPolicy="no-referrer" />
@@ -1947,7 +2012,7 @@ export default function App() {
                                              plannerViewMode === 'weekly' ? Math.max(1, Math.min(daysInMonth - 6, currentDate.getDate() - currentDate.getDay())) :
                                              currentDate.getDate();
                             return emp.shifts.slice(startDay - 1, startDay - 1 + daysToShow).map((shift: any, i: number) => (
-                              <td key={`shift-${emp.id}-${i}`} className="p-1 border-b border-slate-200">
+                              <td key={`shift-${emp.id ?? `idx-${idx}`}-${i}`} className="p-1 border-b border-slate-200">
                                 <div onClick={() => {
                                   setEditingShift({ empId: emp.id, dayIndex: startDay - 1 + i });
                                   setIsShiftModalOpen(true);
@@ -2128,7 +2193,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {alerts.filter(a => a.type === 'error').map((alert, idx) => (
-                    <div key={`absence-alert-${alert.id || idx}`} className={cn(
+                    <div key={`absence-alert-${alert.id ?? `idx-${idx}`}`} className={cn(
                       "p-4 rounded-xl border flex items-center justify-between",
                       darkMode ? "bg-slate-900 border-red-900/30" : "bg-white border-red-100"
                     )}>
@@ -2174,7 +2239,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {alerts.filter(a => a.type === 'warning').map((alert, idx) => (
-                    <div key={`overtime-alert-${alert.id || idx}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex items-center justify-between">
+                    <div key={`overtime-alert-${alert.id ?? `idx-${idx}`}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
                           <Clock size={20} />
@@ -2305,28 +2370,6 @@ export default function App() {
                     </div>
                   </section>
 
-                  {currentUser?.isMaster && (
-                    <section>
-                      <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Banco de Dados</h4>
-                        <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
-                          <p className="text-sm text-slate-600 mb-4">
-                            <strong>Importante:</strong> Antes de clicar no botão abaixo, você deve copiar o conteúdo do arquivo <code>supabase_schema.sql</code> e executá-lo no <strong>SQL Editor</strong> do seu painel Supabase para criar as tabelas.
-                          </p>
-                          <div className="flex flex-col gap-2">
-                            <button 
-                              onClick={setupSupabase}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-lg font-bold hover:bg-emerald-700 transition-colors"
-                            >
-                              <Database size={18} /> 1. Inicializar Dados no Supabase
-                            </button>
-                            <p className="text-[10px] text-slate-400 text-center uppercase font-bold">
-                              Isso carregará os 162 colaboradores, setores e cargos.
-                            </p>
-                          </div>
-                        </div>
-                    </section>
-                  )}
-
                   <section>
                     <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Configurações de RH</h4>
                     <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg space-y-4">
@@ -2434,6 +2477,26 @@ export default function App() {
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
                       >
                         <Download size={18} /> Enviar Relatório Agora (E-mail)
+                      </button>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Ações de Sistema</h4>
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                      <p className="text-sm text-slate-600 mb-4">
+                        Popule o banco de dados com dados iniciais (Setores, Cargos e Colaboradores) para começar a usar o sistema rapidamente.
+                      </p>
+                      <button 
+                        onClick={() => {
+                          if (confirm("Isso irá adicionar dados de exemplo ao sistema. Deseja continuar?")) {
+                            seedDatabase();
+                          }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-all"
+                      >
+                        <Database size={18} />
+                        Popular Banco de Dados Inicial
                       </button>
                     </div>
                   </section>
@@ -2629,8 +2692,8 @@ export default function App() {
                 const formData = new FormData(e.target);
                 addEmployee({
                   name: formData.get('name'),
-                  roleId: parseInt(formData.get('roleId') as string),
-                  sectorId: formData.get('sectorId') ? parseInt(formData.get('sectorId') as string) : null,
+                  roleId: formData.get('roleId') as string,
+                  sectorId: formData.get('sectorId') as string || null,
                   avatar: editingEmployee?.avatar || `https://picsum.photos/seed/${formData.get('name')}/100/100`
                 });
               }} className="space-y-4">
@@ -2720,22 +2783,34 @@ export default function App() {
                 const formData = new FormData(e.target);
                 addUser({
                   name: formData.get('name'),
-                  password: formData.get('password'),
-                  isMaster: formData.get('isMaster') === 'on'
+                  role: formData.get('role')
                 });
               }} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome de Usuário</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Usuário</label>
                   <input name="name" defaultValue={editingUser?.name || ''} required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
                 </div>
+                {editingUser && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">E-mail</label>
+                    <input value={editingUser?.email || ''} disabled className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg outline-none text-slate-500 cursor-not-allowed" />
+                  </div>
+                )}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Senha</label>
-                  <input name="password" type="password" required={!editingUser} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" placeholder={editingUser ? "Deixe em branco para manter" : ""} />
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nível de Acesso</label>
+                  <select name="role" defaultValue={editingUser?.role || 'user'} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                    <option value="user">Usuário (Visualização)</option>
+                    <option value="manager">Gerente (Edição de Escalas)</option>
+                    <option value="admin">Administrador (Total)</option>
+                  </select>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input name="isMaster" type="checkbox" defaultChecked={editingUser?.isMaster} className="w-4 h-4 text-primary border-slate-300 rounded focus:ring-primary" id="isMaster" />
-                  <label htmlFor="isMaster" className="text-sm font-medium text-slate-700">Acesso Master (Pode criar usuários)</label>
-                </div>
+                {!editingUser && (
+                  <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
+                    <p className="text-xs text-amber-800">
+                      <strong>Nota:</strong> Novos usuários devem primeiro fazer login com Google para serem registrados no sistema. Após o login, você poderá alterar o nível de acesso deles aqui.
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsUserModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">Salvar</button>
@@ -2913,7 +2988,7 @@ export default function App() {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 registerAbsence(
-                  parseInt(formData.get('employeeId') as string),
+                  formData.get('employeeId') as string,
                   formData.get('reason') as string
                 );
               }} className="space-y-4">
@@ -2956,9 +3031,9 @@ export default function App() {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 registerDoubleShift(
-                  parseInt(formData.get('employeeId') as string),
+                  formData.get('employeeId') as string,
                   formData.get('date') as string,
-                  parseInt(formData.get('sectorId') as string)
+                  formData.get('sectorId') as string
                 );
               }} className="space-y-4">
                 <div>
@@ -3009,9 +3084,9 @@ export default function App() {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 requestOvertime(
-                  parseInt(formData.get('employeeId') as string),
+                  formData.get('employeeId') as string,
                   formData.get('date') as string,
-                  parseInt(formData.get('sectorId') as string)
+                  formData.get('sectorId') as string
                 );
               }} className="space-y-4">
                 <div>
@@ -3062,6 +3137,7 @@ export default function App() {
           )}
         </AnimatePresence>
       </AnimatePresence>
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

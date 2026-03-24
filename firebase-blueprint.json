@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "Employee": {
+      "title": "Employee",
+      "description": "A staff member in the workforce.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Full name of the employee" },
+        "avatar": { "type": "string", "description": "URL to the employee's avatar image" },
+        "sectorId": { "type": "string", "description": "ID of the sector the employee belongs to" },
+        "roleId": { "type": "string", "description": "ID of the role the employee has" }
+      },
+      "required": ["name", "sectorId", "roleId"]
+    },
+    "Sector": {
+      "title": "Sector",
+      "description": "A department or area of work.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the sector" },
+        "color": { "type": "string", "description": "Hex color code for the sector" },
+        "icon": { "type": "string", "description": "Lucide icon name for the sector" }
+      },
+      "required": ["name", "color"]
+    },
+    "Role": {
+      "title": "Role",
+      "description": "A job title or position.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the role" }
+      },
+      "required": ["name"]
+    },
+    "Shift": {
+      "title": "Shift",
+      "description": "A work shift for an employee on a specific day.",
+      "type": "object",
+      "properties": {
+        "employeeId": { "type": "string", "description": "ID of the employee" },
+        "day": { "type": "integer", "description": "Day of the month (1-31)" },
+        "month": { "type": "integer", "description": "Month of the year (1-12)" },
+        "year": { "type": "integer", "description": "Year" },
+        "type": { "type": "string", "description": "Type of shift (e.g., Manhã, Tarde, Folga, Férias)" },
+        "time": { "type": "string", "description": "Time of the shift" },
+        "overtime": { "type": "integer", "description": "Overtime hours" }
+      },
+      "required": ["employeeId", "day", "month", "year", "type"]
+    },
+    "SpecialSchedule": {
+      "title": "Special Schedule",
+      "description": "An event or special work arrangement.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Name of the special schedule" },
+        "date": { "type": "string", "description": "Date of the schedule (ISO format)" },
+        "status": { "type": "string", "description": "Status of the schedule (e.g., Planejado, Concluído)" }
+      },
+      "required": ["name", "date"]
+    },
+    "SpecialScheduleAssignment": {
+      "title": "Special Schedule Assignment",
+      "description": "Links an employee to a special schedule.",
+      "type": "object",
+      "properties": {
+        "specialScheduleId": { "type": "string", "description": "ID of the special schedule" },
+        "employeeId": { "type": "string", "description": "ID of the employee" }
+      },
+      "required": ["specialScheduleId", "employeeId"]
+    },
+    "Alert": {
+      "title": "Alert",
+      "description": "A notification about an absence or overtime.",
+      "type": "object",
+      "properties": {
+        "type": { "type": "string", "description": "Type of alert (error, warning, info)" },
+        "message": { "type": "string", "description": "Alert message" },
+        "date": { "type": "string", "description": "Date of the alert" },
+        "employeeId": { "type": "string", "description": "ID of the employee related to the alert" }
+      },
+      "required": ["type", "message", "date"]
+    },
+    "Config": {
+      "title": "Config",
+      "description": "Application configuration settings.",
+      "type": "object",
+      "properties": {
+        "value": { "type": "string", "description": "Value of the configuration setting" }
+      },
+      "required": ["value"]
+    },
+    "User": {
+      "title": "User",
+      "description": "An application user with access to the dashboard.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "name": { "type": "string", "description": "Name of the user" },
+        "email": { "type": "string", "description": "Email address of the user" },
+        "role": { "type": "string", "description": "Role of the user (e.g., admin, manager)" },
+        "avatar": { "type": "string", "description": "URL to the user's avatar image" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the user was created" }
+      },
+      "required": ["uid", "name", "email", "role"]
+    }
+  },
+  "firestore": {
+    "/employees": { "schema": "Employee", "description": "Collection of employees" },
+    "/sectors": { "schema": "Sector", "description": "Collection of work sectors" },
+    "/roles": { "schema": "Role", "description": "Collection of job roles" },
+    "/shifts": { "schema": "Shift", "description": "Collection of work shifts" },
+    "/special_schedules": { "schema": "SpecialSchedule", "description": "Collection of special schedules" },
+    "/special_schedule_assignments": { "schema": "SpecialScheduleAssignment", "description": "Assignments for special schedules" },
+    "/alerts": { "schema": "Alert", "description": "Collection of system alerts" },
+    "/config": { "schema": "Config", "description": "Application configuration" },
+    "/users": { "schema": "User", "description": "Collection of application users" }
+  }
+}
