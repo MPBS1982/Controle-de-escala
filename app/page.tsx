@@ -60,7 +60,8 @@ import {
   onSnapshot,
   serverTimestamp,
   increment,
-  writeBatch
+  writeBatch,
+  collectionGroup
 } from '@/firebase';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
