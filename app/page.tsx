@@ -283,7 +283,7 @@ export default function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [plannerViewMode, setPlannerViewMode] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
@@ -300,7 +300,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAlphabetical, setSortAlphabetical] = useState(false);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
@@ -632,7 +632,7 @@ export default function App() {
     unsubscribers.push(alertsUnsub);
 
     return () => unsubscribers.forEach(unsub => unsub());
-  }, [currentUser, isAuthReady]);
+  }, [currentUser?.uid, isAuthReady]);
 
   // Real-time listeners for Firestore (Dynamic Data - Employees & Shifts)
   useEffect(() => {
@@ -3129,10 +3129,10 @@ export default function App() {
               exit={{ opacity: 0, y: 50 }}
               className={cn(
                 "fixed bottom-8 right-8 z-[200] px-6 py-3 rounded-xl shadow-2xl font-bold text-white flex items-center gap-3",
-                toast.type === 'success' ? "bg-emerald-600" : "bg-red-600"
+                toast.type === 'success' ? "bg-emerald-600" : toast.type === 'info' ? "bg-blue-600" : "bg-red-600"
               )}
             >
-              {toast.type === 'success' ? <Zap size={18} /> : <AlertCircle size={18} />}
+              {toast.type === 'success' ? <Zap size={18} /> : toast.type === 'info' ? <Info size={18} /> : <AlertCircle size={18} />}
               {toast.message}
             </motion.div>
           )}
