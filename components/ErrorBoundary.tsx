@@ -62,7 +62,13 @@ class ErrorBoundary extends Component<Props, State> {
             {firestoreInfo && (
               <div className="mt-6 p-4 bg-gray-50 rounded-lg text-left overflow-auto max-h-40">
                 <pre className="text-[10px] text-gray-500 font-mono">
-                  {JSON.stringify(firestoreInfo, null, 2)}
+                  {(() => {
+                    try {
+                      return JSON.stringify(firestoreInfo, null, 2);
+                    } catch (e) {
+                      return 'Erro ao processar informações detalhadas.';
+                    }
+                  })()}
                 </pre>
               </div>
             )}

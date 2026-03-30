@@ -1,5 +1,5 @@
 {
-  "name": "Escala de Trabalho",
-  "description": "Painel de gestão geral e sistema de planejamento de turnos para coordenação de força de trabalho.",
-  "requestFramePermissions": []
+  "name": "Talho Delicatessen Email System",
+  "description": "A system for sending and tracking emails for Talho Delicatessen.",
+  "requestFramePermissions": ["camera", "microphone", "geolocation"]
 }

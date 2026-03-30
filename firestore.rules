@@ -46,7 +46,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
         ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-          (request.auth.token.email == "sistemas@talhodelicatessen.com.br" && request.auth.token.email_verified == true));
+          request.auth.token.email == "sistemas@talhodelicatessen.com.br");
     }
 
     function isOwner(userId) {
@@ -68,13 +68,13 @@ service cloud.firestore {
     function isValidEmployee(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.sectorId is string && data.roleId is string &&
-             (data.avatar == null || (data.avatar is string && data.avatar.size() < 500));
+             (!('avatar' in data) || data.avatar == null || (data.avatar is string && data.avatar.size() < 500));
     }
 
     function isValidSector(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
              data.color is string && data.color.size() < 20 &&
-             (data.icon == null || (data.icon is string && data.icon.size() < 50));
+             (!('icon' in data) || data.icon == null || (data.icon is string && data.icon.size() < 50));
     }
 
     function isValidRole(data) {
@@ -87,14 +87,14 @@ service cloud.firestore {
              data.month is int && data.month >= 1 && data.month <= 12 &&
              data.year is int &&
              data.type is string && data.type.size() < 50 &&
-             (data.time == null || (data.time is string && data.time.size() < 20)) &&
-             (data.overtime == null || data.overtime is int);
+             (!('time' in data) || data.time == null || (data.time is string && data.time.size() < 20)) &&
+             (!('overtime' in data) || data.overtime == null || data.overtime is int);
     }
 
     function isValidSpecialSchedule(data) {
       return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.date is string && data.date.size() < 50 &&
-             (data.status == null || (data.status is string && data.status.size() < 50));
+             (!('status' in data) || data.status == null || (data.status is string && data.status.size() < 50));
     }
 
     function isValidAssignment(data) {
