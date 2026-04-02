@@ -44,6 +44,8 @@ import {
   auth, 
   db, 
   signInWithPopup, 
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   GoogleAuthProvider, 
   signOut, 
   onAuthStateChanged,
@@ -138,6 +140,10 @@ const DOUBLE_SHIFTS = [
     avatar: 'https://picsum.photos/seed/david/100/100'
   }
 ];
+
+const MASTER_EMAIL = 'sistemas@talhodelicatessen.com.br';
+
+const isMasterEmail = (email?: string | null) => (email || '').toLowerCase() === MASTER_EMAIL;
 
 const PLANNER_DATA = [
   {
@@ -295,8 +301,9 @@ export default function App() {
   }, [darkMode]);
   const [activeActionMenu, setActiveActionMenu] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [loginData, setLoginData] = useState({ name: '', password: '' });
+  const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAlphabetical, setSortAlphabetical] = useState(false);
   const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false);
@@ -534,7 +541,7 @@ export default function App() {
     throw new Error(JSON.stringify(errInfo));
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleGoogleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoggingIn(true);
     try {
@@ -546,6 +553,39 @@ export default function App() {
       showToast("Erro ao fazer login com Google", "error");
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const handleEmailPasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, loginData.email.trim(), loginData.password);
+      showToast(`Bem-vindo!`);
+    } catch (error) {
+      console.error("Login error:", error);
+      showToast("Erro ao fazer login com e-mail e senha", "error");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    const email = loginData.email.trim();
+    if (!email) {
+      showToast("Digite seu e-mail para redefinir a senha", "error");
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showToast("E-mail de redefinição enviado");
+    } catch (error) {
+      console.error("Password reset error:", error);
+      showToast("Erro ao enviar redefinição de senha", "error");
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -565,18 +605,33 @@ export default function App() {
         // Check if user exists in Firestore, if not create them
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
+          const userCanBeMaster = isMasterEmail(user.email) && user.emailVerified;
           if (!userDoc.exists()) {
             const newUser = {
               uid: user.uid,
-              name: user.displayName || 'Usuário',
+              name: user.displayName || (userCanBeMaster ? 'Master' : 'Usuário'),
               email: user.email || '',
-              role: 'user', // Default role
+              role: userCanBeMaster ? 'admin' : 'user',
+              isMaster: userCanBeMaster,
               createdAt: serverTimestamp()
             };
             await setDoc(doc(db, 'users', user.uid), newUser);
             setCurrentUser(newUser);
           } else {
-            setCurrentUser(userDoc.data());
+            const existingUser = userDoc.data();
+            const currentUserData = {
+              ...existingUser,
+              email: user.email || existingUser.email || '',
+              name: user.displayName || existingUser.name || (userCanBeMaster ? 'Master' : 'Usuário'),
+              role: userCanBeMaster ? 'admin' : existingUser.role || 'user',
+              isMaster: userCanBeMaster || existingUser.isMaster || existingUser.role === 'admin',
+            };
+
+            if (userCanBeMaster && (!existingUser.isMaster || existingUser.role !== 'admin')) {
+              await setDoc(doc(db, 'users', user.uid), currentUserData, { merge: true });
+            }
+
+            setCurrentUser(currentUserData);
           }
         } catch (error) {
           handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
@@ -619,23 +674,24 @@ export default function App() {
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'roles'));
     unsubscribers.push(rolesUnsub);
 
-    // Listen to users
-    const usersUnsub = onSnapshot(collection(db, 'users'), (snapshot) => {
-      setAppUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
-    unsubscribers.push(usersUnsub);
+    if (currentUser?.isMaster) {
+      // Master-only collections expose user/admin metadata and system config.
+      const usersUnsub = onSnapshot(collection(db, 'users'), (snapshot) => {
+        setAppUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
+      unsubscribers.push(usersUnsub);
 
-    // Listen to config
-    const configUnsub = onSnapshot(collection(db, 'config'), (snapshot) => {
-      snapshot.docs.forEach(doc => {
-        const data = doc.data();
-        if (doc.id === 'rh_email') setRhEmail(data.value);
-        if (doc.id === 'dark_mode') setDarkMode(data.value === 'true');
-        if (doc.id === 'email_notifications') setEmailNotifications(data.value === 'true');
-        if (doc.id === 'email_status') setIsEmailActive(data.active);
-      });
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'config'));
-    unsubscribers.push(configUnsub);
+      const configUnsub = onSnapshot(collection(db, 'config'), (snapshot) => {
+        snapshot.docs.forEach(doc => {
+          const data = doc.data();
+          if (doc.id === 'rh_email') setRhEmail(data.value);
+          if (doc.id === 'dark_mode') setDarkMode(data.value === 'true');
+          if (doc.id === 'email_notifications') setEmailNotifications(data.value === 'true');
+          if (doc.id === 'email_status') setIsEmailActive(data.active);
+        });
+      }, (error) => handleFirestoreError(error, OperationType.LIST, 'config'));
+      unsubscribers.push(configUnsub);
+    }
 
     // Listen to special schedules
     const specialUnsub = onSnapshot(collection(db, 'special_schedules'), (snapshot) => {
@@ -1440,21 +1496,66 @@ export default function App() {
             <p className="text-slate-500 text-sm">Acesse sua conta para gerenciar escalas</p>
           </div>
 
+          <form onSubmit={handleEmailPasswordLogin} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">E-mail</label>
+              <input
+                type="email"
+                value={loginData.email}
+                onChange={(e) => setLoginData(prev => ({ ...prev, email: e.target.value }))}
+                autoComplete="email"
+                required
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                placeholder="seuemail@talhodelicatessen.com.br"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Senha</label>
+              <input
+                type="password"
+                value={loginData.password}
+                onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                autoComplete="current-password"
+                required
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary outline-none"
+                placeholder="Sua senha"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-primary text-white rounded-xl font-semibold hover:bg-primary/90 transition-all disabled:opacity-50"
+            >
+              {isLoggingIn ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                'Entrar'
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handlePasswordReset}
+              disabled={isResettingPassword}
+              className="w-full text-xs font-bold uppercase tracking-wide text-slate-500 hover:text-primary transition-colors disabled:opacity-50"
+            >
+              {isResettingPassword ? 'Enviando...' : 'Esqueci minha senha'}
+            </button>
+          </form>
+
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs uppercase text-slate-400 font-bold">ou</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+
           <button
-            onClick={handleLogin}
+            onClick={handleGoogleLogin}
             disabled={isLoggingIn}
             className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white border-2 border-gray-100 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-100 transition-all group disabled:opacity-50"
           >
-            {isLoggingIn ? (
-              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                <Image src="https://www.google.com/favicon.ico" alt="Google" width={20} height={20} />
-                Entrar com Google
-              </>
-            )}
+            <Image src="https://www.google.com/favicon.ico" alt="Google" width={20} height={20} />
+            Entrar com Google
           </button>
-          
           <div className="mt-8 pt-6 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-400">
               Sistema de Gestão de Escalas & Turnos v2.0

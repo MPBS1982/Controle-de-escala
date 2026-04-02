@@ -46,5 +46,17 @@ ShiftMaster é uma aplicação web robusta para gestão de escalas de colaborado
 - `/lib`: Utilitários, configurações de banco de dados e schema.
 - `/public`: Ativos estáticos.
 
+## Firebase em Produção
+
+Este projeto já está preparado para usar Firebase no ambiente de produção.
+
+1. Preencha as variáveis do Firebase em `.env.local` usando `.env.example` como base.
+2. O `projectId` padrão deste repositório é `controle-escala-talho`.
+3. Configure o mesmo conjunto de variáveis no Firebase App Hosting a partir de `apphosting.yaml`.
+4. Garanta que o projeto Firebase escolhido tenha Authentication e Firestore ativados.
+5. Publique as regras do Firestore com `firebase deploy --only firestore`.
+
+As credenciais do cliente Firebase são carregadas por `firebase.ts` via variáveis de ambiente. Se alguma variável obrigatória faltar, a aplicação vai falhar cedo com uma mensagem clara.
+
 ---
 Desenvolvido para Talho Delicatessen.

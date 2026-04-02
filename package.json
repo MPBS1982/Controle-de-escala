@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && mkdir -p dist && cp -r .next/standalone/. dist/ && cp -r .next/static dist/.next/static && ([ -d public ] && cp -r public dist/public || true)",
+    "build": "next build && node scripts/prepare-dist.mjs",
     "start": "node dist/server.js",
     "lint": "eslint .",
     "clean": "next clean"

@@ -1,0 +1,46 @@
+# Firebase App Hosting configuration for the Next.js app.
+# Replace the placeholder values with the Firebase project values you want to use in production.
+scripts:
+  buildCommand: npm run build
+  runCommand: npm run start
+
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyCnyCqUDaPojbtd3z2GfeBjMapo09ww7IE
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: controle-escala-talho.firebaseapp.com
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: controle-escala-talho
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: controle-escala-talho.firebasestorage.app
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "576748379378"
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:576748379378:web:2a76d807ff5fabf70f846b
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+    value: G-EL79Y0D94C
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: RESEND_API_KEY
+    value: REPLACE_WITH_PRODUCTION_VALUE
+    availability:
+      - RUNTIME

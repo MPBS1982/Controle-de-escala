@@ -1,10 +1,10 @@
 {
-  "projectId": "gen-lang-client-0812000737",
-  "appId": "1:1048157584943:web:040b258703a243877a50da",
-  "apiKey": "AIzaSyCwX56GJKMYeL-d_170NXYl-xAff5vwG5U",
-  "authDomain": "gen-lang-client-0812000737.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-b52a3131-4d58-403b-a3ec-22dfeb221790",
-  "storageBucket": "gen-lang-client-0812000737.firebasestorage.app",
-  "messagingSenderId": "1048157584943",
-  "measurementId": ""
+  "projectId": "controle-escala-talho",
+  "appId": "1:576748379378:web:2a76d807ff5fabf70f846b",
+  "apiKey": "AIzaSyCnyCqUDaPojbtd3z2GfeBjMapo09ww7IE",
+  "authDomain": "controle-escala-talho.firebaseapp.com",
+  "firestoreDatabaseId": "REPLACE_WITH_FIRESTORE_DATABASE_ID",
+  "storageBucket": "controle-escala-talho.firebasestorage.app",
+  "messagingSenderId": "576748379378",
+  "measurementId": "G-EL79Y0D94C"
 }
