@@ -44,6 +44,8 @@ import {
   auth, 
   db, 
   signInWithPopup, 
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
   GoogleAuthProvider, 
@@ -475,6 +477,44 @@ export default function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
 
+  const getFriendlyAuthError = (error: unknown, action: 'google' | 'email' | 'reset') => {
+    const code = typeof error === 'object' && error && 'code' in error
+      ? String((error as { code?: string }).code || '')
+      : '';
+    const rawMessage = typeof error === 'object' && error && 'message' in error
+      ? String((error as { message?: string }).message || '')
+      : String(error);
+
+    const commonFix = 'Verifique no Firebase Console se o provedor está habilitado e se o domínio da Vercel está em Authorized domains.';
+
+    const messages: Record<string, string> = {
+      'auth/popup-blocked': 'O navegador bloqueou a janela de login do Google. Tente novamente ou permita pop-ups.',
+      'auth/popup-closed-by-user': 'A janela de login do Google foi fechada antes de concluir.',
+      'auth/cancelled-popup-request': 'Outra tentativa de login com Google já estava em andamento.',
+      'auth/unauthorized-domain': `Este domínio não está autorizado no Firebase Auth. ${commonFix}`,
+      'auth/operation-not-allowed': 'Este método de autenticação não está habilitado no Firebase Authentication.',
+      'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de login.',
+      'auth/invalid-email': 'O e-mail informado é inválido.',
+      'auth/user-not-found': 'Nenhuma conta foi encontrada com esse e-mail.',
+      'auth/wrong-password': 'Senha incorreta.',
+      'auth/invalid-credential': 'Credenciais inválidas. Verifique o e-mail e a senha.',
+      'auth/user-disabled': 'Esta conta foi desativada.',
+      'auth/too-many-requests': 'Muitas tentativas. Aguarde um pouco antes de tentar de novo.',
+      'auth/network-request-failed': 'Falha de rede ao tentar autenticar.',
+      'auth/expired-action-code': 'O link ou código de redefinição de senha expirou.',
+      'auth/invalid-action-code': 'O link ou código de redefinição de senha é inválido.',
+    };
+
+    const contextual: Record<typeof action, string> = {
+      google: 'Falha ao entrar com Google',
+      email: 'Falha ao entrar com e-mail e senha',
+      reset: 'Falha ao enviar a redefinição de senha',
+    };
+
+    const detail = messages[code] || rawMessage;
+    return `${contextual[action]}${detail ? `: ${detail}` : ''}`;
+  };
+
   const filteredAndSortedEmployees = useMemo(() => {
     let result = employees.map(emp => ({
       ...emp,
@@ -546,11 +586,24 @@ export default function App() {
     setIsLoggingIn(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      showToast(`Bem-vindo!`);
+      provider.setCustomParameters({ prompt: 'select_account' });
+      try {
+        await signInWithPopup(auth, provider);
+        showToast('Bem-vindo!');
+      } catch (error) {
+        const code = typeof error === 'object' && error && 'code' in error
+          ? String((error as { code?: string }).code || '')
+          : '';
+        if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') {
+          await signInWithRedirect(auth, provider);
+          showToast('Redirecionando para o login do Google...');
+          return;
+        }
+        throw error;
+      }
     } catch (error) {
       console.error("Login error:", error);
-      showToast("Erro ao fazer login com Google", "error");
+      showToast(getFriendlyAuthError(error, 'google'), "error");
     } finally {
       setIsLoggingIn(false);
     }
@@ -564,7 +617,7 @@ export default function App() {
       showToast(`Bem-vindo!`);
     } catch (error) {
       console.error("Login error:", error);
-      showToast("Erro ao fazer login com e-mail e senha", "error");
+      showToast(getFriendlyAuthError(error, 'email'), "error");
     } finally {
       setIsLoggingIn(false);
     }
@@ -583,7 +636,7 @@ export default function App() {
       showToast("E-mail de redefinição enviado");
     } catch (error) {
       console.error("Password reset error:", error);
-      showToast("Erro ao enviar redefinição de senha", "error");
+      showToast(getFriendlyAuthError(error, 'reset'), "error");
     } finally {
       setIsResettingPassword(false);
     }
@@ -642,6 +695,22 @@ export default function App() {
       setIsAuthReady(true);
     });
     return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const consumeRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          showToast('Login com Google concluído!');
+        }
+      } catch (error) {
+        console.error('Redirect login error:', error);
+        showToast(getFriendlyAuthError(error, 'google'), 'error');
+      }
+    };
+
+    void consumeRedirectResult();
   }, []);
 
   // Handle ChunkLoadError
