@@ -493,6 +493,7 @@ export default function App() {
       'auth/cancelled-popup-request': 'Outra tentativa de login com Google já estava em andamento.',
       'auth/unauthorized-domain': `Este domínio não está autorizado no Firebase Auth. ${commonFix}`,
       'auth/operation-not-allowed': 'Este método de autenticação não está habilitado no Firebase Authentication.',
+      'auth/configuration-not-found': 'O Firebase Auth deste projeto não está configurado corretamente. Ative Authentication no Console e habilite Google e Email/Password.',
       'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de login.',
       'auth/invalid-email': 'O e-mail informado é inválido.',
       'auth/user-not-found': 'Nenhuma conta foi encontrada com esse e-mail.',

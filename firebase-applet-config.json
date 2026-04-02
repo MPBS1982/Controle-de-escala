@@ -3,7 +3,6 @@
   "appId": "1:576748379378:web:2a76d807ff5fabf70f846b",
   "apiKey": "AIzaSyCnyCqUDaPojbtd3z2GfeBjMapo09ww7IE",
   "authDomain": "controle-escala-talho.firebaseapp.com",
-  "firestoreDatabaseId": "REPLACE_WITH_FIRESTORE_DATABASE_ID",
   "storageBucket": "controle-escala-talho.firebasestorage.app",
   "messagingSenderId": "576748379378",
   "measurementId": "G-EL79Y0D94C"

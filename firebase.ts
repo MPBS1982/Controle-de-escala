@@ -16,6 +16,12 @@ type FirebaseRuntimeConfig = {
 };
 
 const fallbackConfig = firebaseConfig as FirebaseRuntimeConfig & { firestoreDatabaseId?: string };
+const normalizeDatabaseId = (value?: string) => {
+  if (!value || value === 'REPLACE_WITH_FIRESTORE_DATABASE_ID') {
+    return undefined;
+  }
+  return value;
+};
 
 const runtimeConfig: FirebaseRuntimeConfig & { firestoreDatabaseId?: string } = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || fallbackConfig.apiKey,
@@ -25,7 +31,7 @@ const runtimeConfig: FirebaseRuntimeConfig & { firestoreDatabaseId?: string } = 
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || fallbackConfig.messagingSenderId,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || fallbackConfig.appId,
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || fallbackConfig.measurementId,
-  firestoreDatabaseId: process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID || fallbackConfig.firestoreDatabaseId,
+  firestoreDatabaseId: normalizeDatabaseId(process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID || fallbackConfig.firestoreDatabaseId),
 };
 
 // Initialize Firebase SDK
