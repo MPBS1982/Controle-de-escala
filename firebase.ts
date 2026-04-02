@@ -2,6 +2,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut, User as FirebaseUser } from 'firebase/auth';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocFromServer, Firestore, addDoc, serverTimestamp, increment, writeBatch, collectionGroup, setLogLevel } from 'firebase/firestore';
 
+import firebaseConfig from './firebase-applet-config.json';
+
 type FirebaseRuntimeConfig = {
   apiKey: string;
   authDomain: string;
@@ -13,23 +15,17 @@ type FirebaseRuntimeConfig = {
   firestoreDatabaseId?: string;
 };
 
-const requiredEnv = (key: string) => {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Missing Firebase environment variable: ${key}`);
-  }
-  return value;
-};
+const fallbackConfig = firebaseConfig as FirebaseRuntimeConfig & { firestoreDatabaseId?: string };
 
 const runtimeConfig: FirebaseRuntimeConfig & { firestoreDatabaseId?: string } = {
-  apiKey: requiredEnv('NEXT_PUBLIC_FIREBASE_API_KEY'),
-  authDomain: requiredEnv('NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN'),
-  projectId: requiredEnv('NEXT_PUBLIC_FIREBASE_PROJECT_ID'),
-  storageBucket: requiredEnv('NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET'),
-  messagingSenderId: requiredEnv('NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID'),
-  appId: requiredEnv('NEXT_PUBLIC_FIREBASE_APP_ID'),
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || undefined,
-  firestoreDatabaseId: process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID || undefined,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || fallbackConfig.apiKey,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || fallbackConfig.authDomain,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || fallbackConfig.projectId,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || fallbackConfig.storageBucket,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || fallbackConfig.messagingSenderId,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || fallbackConfig.appId,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || fallbackConfig.measurementId,
+  firestoreDatabaseId: process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_DATABASE_ID || fallbackConfig.firestoreDatabaseId,
 };
 
 // Initialize Firebase SDK
