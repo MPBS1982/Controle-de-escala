@@ -2,7 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'ShiftMaster Pro',
+  title: 'Escala do Talho',
   description: 'Painel de gestão de força de trabalho e planejamento de turnos',
 };
 

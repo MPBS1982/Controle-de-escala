@@ -1120,7 +1120,7 @@ export default function App() {
               <p><strong>Motivo:</strong> ${reason || 'Não informado'}</p>
               <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
               <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
             </div>
           `
         })
@@ -1168,7 +1168,7 @@ export default function App() {
               <p><strong>Setor:</strong> ${sector.name}</p>
               <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
               <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
             </div>
           `
         })
@@ -1283,7 +1283,7 @@ export default function App() {
               <p><strong>Setor:</strong> ${sector.name}</p>
               <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
               <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-              <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
             </div>
           `
         })
@@ -2647,7 +2647,7 @@ export default function App() {
                                       </tbody>
                                     </table>
                                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                                    <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema ShiftMaster.</p>
+                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
                                   </div>
                                 `
                               })

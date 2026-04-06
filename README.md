@@ -1,28 +1,28 @@
-# ShiftMaster - Sistema de Gestão de Escalas
+# Escala do Talho
 
-ShiftMaster é uma aplicação web robusta para gestão de escalas de colaboradores, turnos, ausências e eventos especiais. Desenvolvido com Next.js, TypeScript e SQLite.
+Escala do Talho e uma aplicacao web para gestao de escalas de colaboradores, turnos, ausencias e eventos especiais. O projeto foi desenvolvido com Next.js, TypeScript e SQLite.
 
 ## Funcionalidades
 
-- **Dashboard**: Visão geral de alertas, métricas e status da equipe.
-- **Planejador**: Interface interativa para gerenciar turnos diários.
-- **Colaboradores**: Cadastro e gestão completa de funcionários.
-- **Escalas Especiais**: Planejamento de escalas para eventos específicos com equipes designadas.
-- **Relatórios**: Geração de relatórios em PDF para colaboradores, escalas mensais e eventos.
-- **Gestão de Acesso**: Sistema de login com níveis de permissão (Admin/Master).
-- **Notificações**: Alertas automáticos de ausências e solicitações de horas extras.
+- Dashboard: visao geral de alertas, metricas e status da equipe.
+- Planejador: interface interativa para gerenciar turnos diarios.
+- Colaboradores: cadastro e gestao completa de funcionarios.
+- Escalas especiais: planejamento de escalas para eventos especificos com equipes designadas.
+- Relatorios: geracao de relatorios em PDF para colaboradores, escalas mensais e eventos.
+- Gestao de acesso: sistema de login com niveis de permissao (Admin/Master).
+- Notificacoes: alertas automaticos de ausencias e solicitacoes de horas extras.
 
 ## Tecnologias Utilizadas
 
-- **Frontend**: Next.js 15, React 19, Tailwind CSS, Framer Motion.
-- **Backend**: Next.js API Routes.
-- **Banco de Dados**: SQLite com Drizzle ORM.
-- **Relatórios**: jsPDF, jsPDF-AutoTable.
-- **Ícones**: Lucide React.
+- Frontend: Next.js 15, React 19, Tailwind CSS, Framer Motion.
+- Backend: Next.js API Routes.
+- Banco de dados: SQLite com Drizzle ORM.
+- Relatorios: jsPDF e jsPDF-AutoTable.
+- Icones: Lucide React.
 
 ## Como Executar
 
-1. Instale as dependências:
+1. Instale as dependencias:
    ```bash
    npm install
    ```
@@ -32,31 +32,31 @@ ShiftMaster é uma aplicação web robusta para gestão de escalas de colaborado
    npm run dev
    ```
 
-3. Acesse a aplicação em `http://localhost:3000`.
+3. Acesse a aplicacao em `http://localhost:3000`.
 
-## Credenciais Padrão
+## Credenciais Padrao
 
-- **Usuário**: admin@shiftmaster.com
-- **Senha**: admin
+- Usuario: `sistemas@talhodelicatessen.com.br`
+- Senha: definida no Firebase Authentication
 
 ## Estrutura do Projeto
 
-- `/app`: Rotas e componentes da aplicação Next.js.
-- `/components`: Componentes React reutilizáveis.
-- `/lib`: Utilitários, configurações de banco de dados e schema.
-- `/public`: Ativos estáticos.
+- `/app`: rotas e componentes da aplicacao Next.js.
+- `/components`: componentes React reutilizaveis.
+- `/lib`: utilitarios, configuracoes de banco de dados e schema.
+- `/public`: ativos estaticos.
 
-## Firebase em Produção
+## Firebase em Producao
 
-Este projeto já está preparado para usar Firebase no ambiente de produção.
+Este projeto ja esta preparado para usar Firebase em producao.
 
-1. Preencha as variáveis do Firebase em `.env.local` usando `.env.example` como base.
-2. O `projectId` padrão deste repositório é `controle-escala-talho`.
-3. Configure o mesmo conjunto de variáveis no Firebase App Hosting a partir de `apphosting.yaml`.
+1. Preencha as variaveis do Firebase em `.env.local` usando `.env.example` como base.
+2. O `projectId` padrao deste repositorio e `controle-escala-talho`.
+3. Configure o mesmo conjunto de variaveis no Firebase App Hosting a partir de `apphosting.yaml`.
 4. Garanta que o projeto Firebase escolhido tenha Authentication e Firestore ativados.
 5. Publique as regras do Firestore com `firebase deploy --only firestore`.
 
-As credenciais do cliente Firebase são carregadas por `firebase.ts` via variáveis de ambiente. Se alguma variável obrigatória faltar, a aplicação vai falhar cedo com uma mensagem clara.
+As credenciais do cliente Firebase sao carregadas por `firebase.ts` via variaveis de ambiente. Se alguma variavel obrigatoria faltar, a aplicacao vai falhar cedo com uma mensagem clara.
 
 ---
 Desenvolvido para Talho Delicatessen.
