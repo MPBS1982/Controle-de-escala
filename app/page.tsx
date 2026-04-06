@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
+import { seedConfig, seedEmployees, seedRoles, seedSectors } from '@/lib/base-colaboradores';
 import Image from 'next/image';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -931,276 +932,47 @@ export default function App() {
   };
 
   const seedDatabase = async () => {
-    console.log("Starting database seeding...");
+    console.log("Starting database seeding from spreadsheet...");
     try {
       setIsLoading(true);
       const batch = writeBatch(db);
 
-      // 1. Sectors
       console.log("Seeding sectors...");
-      const sectorRefs: { [key: string]: string } = {};
-      const sectorsData = [
-        { name: 'BALCÃO FRIOS', color: '#ef4444', icon: 'Layers' },
-        { name: 'EMPADA', color: '#f59e0b', icon: 'Layers' },
-        { name: 'ATENDIMENTO MESAS', color: '#3b82f6', icon: 'Users' },
-        { name: 'COZINHA DELI', color: '#10b981', icon: 'Layers' },
-        { name: 'BALCÃO PÃES E PASTAS', color: '#8b5cf6', icon: 'Layers' },
-        { name: 'ATENDIMENTO LOJA', color: '#6366f1', icon: 'Users' },
-        { name: 'PADARIA', color: '#f97316', icon: 'Layers' },
-        { name: 'ESTOQUE', color: '#64748b', icon: 'Database' },
-        { name: 'ESCRITÓRIO', color: '#475569', icon: 'Briefcase' },
-        { name: 'BALCÃO SANDUÍCHE', color: '#ec4899', icon: 'Layers' },
-        { name: 'SERVIÇOS GERAIS', color: '#94a3b8', icon: 'Briefcase' },
-        { name: 'PADARIA EMBALAGEM', color: '#d946ef', icon: 'Layers' },
-        { name: 'CONFEITARIA', color: '#f43f5e', icon: 'Layers' },
-        { name: 'MANUTENÇÃO', color: '#0ea5e9', icon: 'Settings' },
-        { name: 'ATENDIMENTO CAIXAS', color: '#14b8a6', icon: 'Users' },
-        { name: 'EXPEDIÇÃO', color: '#84cc16', icon: 'Database' },
-        { name: 'AÇOUGUE', color: '#b91c1c', icon: 'Layers' },
-        { name: 'ENTREGADOR MOTO', color: '#7c3aed', icon: 'Briefcase' },
-        { name: 'SUCOS', color: '#fbbf24', icon: 'Layers' },
-        { name: 'MASSAS', color: '#d97706', icon: 'Layers' }
-      ];
-
-      for (const sector of sectorsData) {
-        const ref = doc(collection(db, 'sectors'));
-        batch.set(ref, sector);
-        sectorRefs[sector.name] = ref.id;
-      }
-
-      // 2. Roles
-      console.log("Seeding roles...");
-      const roleRefs: { [key: string]: string } = {};
-      const roleNames = [
-        'ATENDENTE 2', 'COZINHEIRO(A) 1', 'CUMIM', 'AJUDANTE DE COZINHA', 'LANCHEIRO 2 A',
-        'ATENDENTE EXPERIÊNCIA', 'ATENDENTE 4', 'PADEIRO 4', 'JOVEM APRENDIZ A', 'ESTOQUISTA 2',
-        'TÉCNICA EM NUTRIÇÃO', 'ASSIST. ADMINISTRATIVO 2', 'GARÇOM', 'SUPERVISOR 1',
-        'AUXILIAR DE LANCHEIRO', 'AUX. SERVIÇOS GERAIS', 'JOVEM APRENDIZ B', 'GARÇOM 1',
-        'LANCHEIRO 4', 'CONFEITEIRO 2', 'LANCHEIRO', 'AUX. MANUTENÇÃO 3', 'CONFEITEIRO 3',
-        'PADEIRO 3', 'OPERADOR(A) DE CAIXA', 'AUX. SERV. GERAIS EXPERIÊNCIA', 'ATENDENTE',
-        'PADEIRO 1', 'CUMIM 2', 'COZINHEIRO(A) 2', 'AJUDANTE DE PADEIRO',
-        'OPERADOR(A) DE CAIXA EXPERIÊNCIA', 'EMBALADOR', 'LANCHEIRO 3', 'AÇOUGUEIRO 2',
-        'AUX. MANUTENÇÃO III', 'PADEIRO', 'AUXILIAR DE CONFEITEIRO', 'PADEIRO 2 A',
-        'ATENDENTE 3', 'COZINHEIRO(A) 3', 'SUPERVISOR', 'SUPERVISOR 2', 'COMPRADOR 1',
-        'PADEIRO 2 B', 'CONFEITEIRO', 'ATENDENTE 1', 'MOTOCICLISTA', 'LANCHEIRO 2 B',
-        'ESTOQUISTA AUXILIAR', 'EMBALADOR 1', 'COORDENADORA DE SUPRIMENTOS',
-        'COORDENADOR ADMINISTRATIVO', 'SUPERVISOR 3', 'ESTOQUISTA', 'AÇOUGUEIRO 1'
-      ];
-
-      for (const name of roleNames) {
-        const ref = doc(collection(db, 'roles'));
-        batch.set(ref, { name });
-        roleRefs[name] = ref.id;
-      }
-
-      // 3. Employees
-      console.log("Seeding employees...");
-      const employeesData = [
-        { n: 'Abraão Resende Ivo', s: 'BALCÃO FRIOS', r: 'ATENDENTE 2' },
-        { n: 'Ademilson da Cruz Santana', s: 'EMPADA', r: 'COZINHEIRO(A) 1' },
-        { n: 'Adrielly Xavier da Silva', s: 'ATENDIMENTO MESAS', r: 'CUMIM' },
-        { n: 'Alane da Silva Duarte', s: 'EMPADA', r: 'AJUDANTE DE COZINHA' },
-        { n: 'Aldenir Severino da Silva', s: 'COZINHA DELI', r: 'LANCHEIRO 2 A' },
-        { n: 'Aleksandra de Mesquita', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE EXPERIÊNCIA' },
-        { n: 'Aleksandro Suarez', s: 'ATENDIMENTO LOJA', r: 'ATENDENTE 4' },
-        { n: 'Alex Alexandre de Aguiar', s: 'PADARIA', r: 'PADEIRO 4' },
-        { n: 'Alex Braga Nunes', s: 'EMPADA', r: 'JOVEM APRENDIZ A' },
-        { n: 'Alex Silva de Souza', s: 'ESTOQUE', r: 'ESTOQUISTA 2' },
-        { n: 'Alexia dos Santos Sambonha', s: 'ESCRITÓRIO', r: 'TÉCNICA EM NUTRIÇÃO' },
-        { n: 'Amanda Andrade da Silva', s: 'ESCRITÓRIO', r: 'ASSIST. ADMINISTRATIVO 2' },
-        { n: 'Amilton de Jesus Ferreira dos Santos', s: 'ATENDIMENTO MESAS', r: 'GARÇOM' },
-        { n: 'Ana Carolina Mendonça Romeu', s: 'ATENDIMENTO LOJA', r: 'SUPERVISOR 1' },
-        { n: 'Ana Roberta Gomes de Brito', s: 'BALCÃO SANDUÍCHE', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Andrea da Conceição Rosa', s: 'SERVIÇOS GERAIS', r: 'AUX. SERVIÇOS GERAIS' },
-        { n: 'Anna Paula Fabiola Gomes', s: 'PADARIA EMBALAGEM', r: 'JOVEM APRENDIZ A' },
-        { n: 'Antonia Lailane Farias Veras', s: 'ATENDIMENTO MESAS', r: 'GARÇOM 1' },
-        { n: 'Antonio Carlos Torres', s: 'BALCÃO SANDUÍCHE', r: 'LANCHEIRO 4' },
-        { n: 'Antonio Cleiton Lopes Leitão', s: 'CONFEITARIA', r: 'CONFEITEIRO 2' },
-        { n: 'Antonio Dos Reis de Sena Rosa', s: 'COZINHA DELI', r: 'LANCHEIRO' },
-        { n: 'Antonio Feliciano da Silva', s: 'BALCÃO SANDUÍCHE', r: 'LANCHEIRO 2 A' },
-        { n: 'Antonio Itamar Silva Camelo', s: 'COZINHA', r: 'COZINHEIRO(A) 1' },
-        { n: 'Antonio José de Freitas Neto', s: 'MANUTENÇÃO', r: 'AUX. MANUTENÇÃO 3' },
-        { n: 'Antonio Marcio Victor Otaviano', s: 'CONFEITARIA', r: 'CONFEITEIRO 3' },
-        { n: 'Antonio Raquel da Silva', s: 'PADARIA', r: 'PADEIRO 3' },
-        { n: 'Brenda Alves do Carmo', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA' },
-        { n: 'Brendom Tavares de Melo', s: 'SERVIÇOS GERAIS', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Bruna Roberta de Andrade', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE' },
-        { n: 'Bruno Mendonça Edizio', s: 'BALCÃO FRIOS', r: 'ATENDENTE 2' },
-        { n: 'Caiane Mendonça Serra', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE' },
-        { n: 'Camille de Campos Alves', s: 'CONFEITARIA', r: 'JOVEM APRENDIZ A' },
-        { n: 'Carlos Alberto Silva Bezerra', s: 'COZINHA', r: 'COZINHEIRO(A) 1' },
-        { n: 'Carlos Henrique Viana Felicio', s: 'COZINHA DELI', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Carolina Alonso Gonçalves', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA EXPERIÊNCIA' },
-        { n: 'Cecilia Brum Maciel', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE' },
-        { n: 'Celso Santos de Souza', s: 'PADARIA', r: 'PADEIRO 1' },
-        { n: 'Cintia Teixeira Coelho', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE' },
-        { n: 'Cirlene Rodrigues de Souza Ferreira de Andrade', s: 'EMPADA', r: 'AJUDANTE DE COZINHA' },
-        { n: 'Claudia Regina Moreira Santana', s: 'ATENDIMENTO MESAS', r: 'CUMIM 2' },
-        { n: 'Clenilson Oliveira Santos', s: 'MASSAS', r: 'COZINHEIRO(A) 2' },
-        { n: 'Cosme Viana Felicio', s: 'PADARIA', r: 'AJUDANTE DE PADEIRO' },
-        { n: 'Cristiana Alves de Souza', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA EXPERIÊNCIA' },
-        { n: 'Daniela Silva do Nascimento', s: 'ATENDIMENTO MESAS', r: 'CUMIM' },
-        { n: 'Dayane Coelho Moreira', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA' },
-        { n: 'Deuselina Gomes da Silva', s: 'EXPEDIÇÃO', r: 'ATENDENTE 2' },
-        { n: 'Diogo Roberto de Sousa Gonçalves', s: 'PADARIA', r: 'PADEIRO 1' },
-        { n: 'Eduardo de Oliveira', s: 'COZINHA', r: 'COZINHEIRO(A)' },
-        { n: 'Elibaldo dos Santos Costa', s: 'PADARIA', r: 'PADEIRO 3' },
-        { n: 'Elinai Felizardo dos Santos', s: 'BALCÃO FRIOS', r: 'ATENDENTE 2' },
-        { n: 'Elizangela Alves Cardoso', s: 'PADARIA EMBALAGEM', r: 'EMBALADOR' },
-        { n: 'Elizângela da Silva Santana', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE EXPERIÊNCIA' },
-        { n: 'Emerson Ferreira da Silva', s: 'EXPEDIÇÃO', r: 'ATENDENTE 2' },
-        { n: 'Enestine Pereira do Carmo Araújo', s: 'ATENDIMENTO MESAS', r: 'CUMIM' },
-        { n: 'Eriberto Ferreira da Silva', s: 'BALCÃO SANDUÍCHE', r: 'LANCHEIRO 3' },
-        { n: 'Evillyn Ingrid da Silva', s: 'CONFEITARIA', r: 'JOVEM APRENDIZ A' },
-        { n: 'Fabio Soares Barrão', s: 'MASSAS', r: 'COZINHEIRO(A)' },
-        { n: 'Francinaldo Guedes da Silva', s: 'ATENDIMENTO MESAS', r: 'GARÇOM' },
-        { n: 'Francirany Alves de Sousa', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE EXPERIÊNCIA' },
-        { n: 'Francisca Evanilde de Lima Souza', s: 'COZINHA', r: 'COZINHEIRO(A)' },
-        { n: 'Francisco Edson Pereira Moura', s: 'COZINHA DELI', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Francisco Leonardo Braga Lima', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA EXPERIÊNCIA' },
-        { n: 'Francisco Marquilane dos Santos', s: 'AÇOUGUE', r: 'AÇOUGUEIRO 2' },
-        { n: 'Gabriel Pereira da Silva', s: 'MANUTENÇÃO', r: 'AUX. MANUTENÇÃO III' },
-        { n: 'Gabriel Vidal Teles de Carvalho', s: 'COZINHA DELI', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Gideão Xavier Sant\'anna Martins', s: 'COZINHA DELI', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Gilson Rodolfo da Costa', s: 'ATENDIMENTO MESAS', r: 'GARÇOM' },
-        { n: 'Giovanni José F Gomes', s: 'PADARIA', r: 'PADEIRO' },
-        { n: 'Giselle Favianna Splendiani Yanez', s: 'CONFEITARIA', r: 'AUXILIAR DE CONFEITEIRO' },
-        { n: 'Gizele Marinho Nunes', s: 'SERVIÇOS GERAIS', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Graciele Marques de Sousa Mesquita', s: 'ATENDIMENTO MESAS', r: 'GARÇOM 1' },
-        { n: 'Guilherme Vitelly Marinho da Rocha', s: 'ESTOQUE', r: 'JOVEM APRENDIZ A' },
-        { n: 'Gustavo Batista da Costa', s: 'PADARIA', r: 'PADEIRO 2 A' },
-        { n: 'Gutemberg Martins de Farias', s: 'COZINHA', r: 'COZINHEIRO(A) 2' },
-        { n: 'Helber Pinheiro dos Santos', s: 'COZINHA DELI', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Henrique Ernesto da Silva', s: 'COZINHA DELI', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Iago Miguel Barbosa de Oliveira', s: 'SERVIÇOS GERAIS', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Igor Bezerra Ferreira', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE' },
-        { n: 'Inácia Ribeiro da Silva', s: 'COZINHA DELI', r: 'LANCHEIRO' },
-        { n: 'Inan Rosa Rodrigues', s: 'COZINHA DELI', r: 'LANCHEIRO' },
-        { n: 'Isabella Cristine Chavantes Rafael', s: 'CONFEITARIA', r: 'OPERADOR(A) DE CAIXA EXPERIÊNCIA' },
-        { n: 'Isis Mayara Candido Albuquerque', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE' },
-        { n: 'Israel da Conceição Gama', s: 'BALCÃO SANDUÍCHE', r: 'ATENDENTE EXPERIÊNCIA' },
-        { n: 'Janaína Gomes Soares', s: 'PADARIA', r: 'AJUD. PADEIRO EXPERIÊNCIA' },
-        { n: 'Jaqueline Santos da Silva', s: 'ATENDIMENTO MESAS', r: 'GARÇOM' },
-        { n: 'Jeferson Alves Daniel', s: 'BALCÃO FRIOS', r: 'ATENDENTE 3' },
-        { n: 'Joelane Rocha de O Santos', s: 'COZINHA', r: 'COZINHEIRO(A) 3' },
-        { n: 'Joana Maria Ferreira Sousa', s: 'ATENDIMENTO LOJA', r: 'SUPERVISOR' },
-        { n: 'João Antonio Marques de Araujo', s: 'ATENDIMENTO LOJA', r: 'SUPERVISOR 2' },
-        { n: 'João Batista Ferreira da Silva', s: 'ESTOQUE', r: 'COMPRADOR 1' },
-        { n: 'João Douglas Pereira de Vasconcelos', s: 'ATENDIMENTO MESAS', r: 'CUMIM' },
-        { n: 'João Paulo Raquel da Silva', s: 'PADARIA', r: 'PADEIRO 2 B' },
-        { n: 'João Vitor Rodrigues da Silva', s: 'ESTOQUE', r: 'ESTOQUISTA 2' },
-        { n: 'John Lenon Sousa Araújo', s: 'BALCÃO SANDUÍCHE', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Jonatham Batista Tavares', s: 'SERVIÇOS GERAIS', r: 'AUX. SERVIÇOS GERAIS' },
-        { n: 'Jorge Henrique Lobo Leite da Costa', s: 'SERVIÇOS GERAIS', r: 'JOVEM APRENDIZ A' },
-        { n: 'Jorge Luiz Carvalho Silva', s: 'ESTOQUE', r: 'ESTOQUISTA 2' },
-        { n: 'José Ailton Gonçalves Araújo', s: 'PADARIA', r: 'PADEIRO 2 B' },
-        { n: 'José Carlos Higino de Oliveira', s: 'BALCÃO FRIOS', r: 'ATENDENTE 4' },
-        { n: 'José Francisco de Souza', s: 'SERVIÇOS GERAIS', r: 'AUX. SERVIÇOS GERAIS' },
-        { n: 'José Pedro da Silva Pereira', s: 'CONFEITARIA', r: 'CONFEITEIRO' },
-        { n: 'José Roberto de Sousa Matias', s: 'PADARIA', r: 'PADEIRO 1' },
-        { n: 'Josean da Silva', s: 'AÇOUGUE', r: 'AÇOUGUEIRO 2' },
-        { n: 'Joselito Ferreira de França', s: 'BALCÃO FRIOS', r: 'ATENDENTE 3' },
-        { n: 'Josiel de Jesus França da Silva', s: 'ESTOQUE', r: 'COMPRADOR 1' },
-        { n: 'Julia Conceição Corrêa', s: 'COZINHA', r: 'COZINHEIRO(A) 1' },
-        { n: 'Juliana Alves Ferreira', s: 'ATENDIMENTO LOJA', r: 'SUPERVISOR 2' },
-        { n: 'Kayane Juvino do Nascimento', s: 'ATENDIMENTO CAIXAS', r: 'ATENDENTE' },
-        { n: 'Laerto Cipriano de Paula', s: 'PADARIA', r: 'PADEIRO 1' },
-        { n: 'Layla Araújo Pereira', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE 1' },
-        { n: 'Leandro Rodrigues da Silva', s: 'ENTREGADOR MOTO', r: 'MOTOCICLISTA' },
-        { n: 'Lediana Maria da Silva', s: 'EXPEDIÇÃO', r: 'OPERADOR(A) DE CAIXA' },
-        { n: 'Leonardo Barbosa Tavares Simplicio', s: 'PADARIA', r: 'PADEIRO 3' },
-        { n: 'Leonardo de Sousa Mota', s: 'PADARIA', r: 'PADEIRO 3' },
-        { n: 'Leonardo Silva dos Santos', s: 'BALCÃO FRIOS', r: 'ATENDENTE 2' },
-        { n: 'Leticia Campos de Araujo da Silva', s: 'ESCRITÓRIO', r: 'ASSIST. ADMINISTRATIVO 2' },
-        { n: 'Lorrana Cristina de Souza Bento', s: 'ATENDIMENTO MESAS', r: 'CUMIM 1' },
-        { n: 'Luana dos Santos Peçanha', s: 'EMPADA', r: 'AJUDANTE DE COZINHA' },
-        { n: 'Luis Horacio Filho', s: 'PADARIA', r: 'PADEIRO 4' },
-        { n: 'Luisa Eliete de Abreu', s: 'BALCÃO SANDUÍCHE', r: 'LANCHEIRO 2 B' },
-        { n: 'Luiz Carlos da Silva', s: 'BALCÃO FRIOS', r: 'ATENDENTE EXPERIÊNCIA' },
-        { n: 'Luiz Henrique Frazão de Azevedo', s: 'ESTOQUE', r: 'ESTOQUISTA AUXILIAR' },
-        { n: 'Maico de Mesquita Torres', s: 'CONFEITARIA', r: 'CONFEITEIRO 2' },
-        { n: 'Maise Estefani Soares Pinheiro', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE EXPERIÊNCIA' },
-        { n: 'Manoella Ernesto Silva', s: 'PADARIA EMBALAGEM', r: 'EMBALADOR 1' },
-        { n: 'Marcela Zampari', s: 'ESCRITÓRIO', r: 'COORDENADORA DE SUPRIMENTOS' },
-        { n: 'Marcelo Benedito de Abreu', s: 'EXPEDIÇÃO', r: 'ATENDENTE 2' },
-        { n: 'Marcelo Pereira Bittencourt de Souza', s: 'ESCRITÓRIO', r: 'COORDENADOR ADMINISTRATIVO' },
-        { n: 'Marcelo Pereira da Costa', s: 'ATENDIMENTO MESAS', r: 'CUMIM' },
-        { n: 'Marcelo Sousa da Silva', s: 'EMPADA', r: 'COZINHEIRO(A) 1' },
-        { n: 'Marco Antonio da Conceição Pereira', s: 'BALCÃO FRIOS', r: 'ATENDENTE 2' },
-        { n: 'Marcos Barbosa Cavalcante', s: 'COZINHA DELI', r: 'LANCHEIRO 2 A' },
-        { n: 'Maria Elizangela Ferreira Miranda', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA' },
-        { n: 'Maria Lorrainy dos Santos Freitas', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA EXPERIÊNCIA' },
-        { n: 'Maria Luiza Paulo Silva', s: 'PADARIA EMBALAGEM', r: 'EMBALADOR 1' },
-        { n: 'Maria Luzia dos Santos', s: 'SERVIÇOS GERAIS', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Maria Salete da Silva Pereira', s: 'EXPEDIÇÃO', r: 'ATENDENTE 3' },
-        { n: 'Maria Tainá Araújo Veras', s: 'ATENDIMENTO LOJA', r: 'SUPERVISOR 3' },
-        { n: 'Maria Weslaine da Silva', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE EXPERIÊNCIA' },
-        { n: 'Mariana da Silva Mendes', s: 'ATENDIMENTO LOJA', r: 'SUPERVISOR 1' },
-        { n: 'Marys Stella Correa Alves', s: 'PADARIA EMBALAGEM', r: 'EMBALADOR' },
-        { n: 'Matheus Araújo dos Anjos', s: 'PADARIA', r: 'AJUDANTE DE PADEIRO' },
-        { n: 'Mauro da Silva Ezidio', s: 'COZINHA DELI', r: 'LANCHEIRO 3' },
-        { n: 'Michael Douglas Madeira de Sousa', s: 'ESTOQUE', r: 'ESTOQUISTA AUXILIAR' },
-        { n: 'Nadila Silene Correia Alves', s: 'CONFEITARIA', r: 'CONFEITEIRO 3' },
-        { n: 'Nicolas Mesquita Nascimento', s: 'COZINHA DELI', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Pablo Souza Melo', s: 'ESTOQUE', r: 'ESTOQUISTA' },
-        { n: 'Pamela Rosa dos Santos', s: 'BALCÃO SANDUÍCHE', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Paulo Edgley Serafim', s: 'COZINHA DELI', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Paulo Sérgio da Cunha', s: 'AÇOUGUE', r: 'AÇOUGUEIRO 1' },
-        { n: 'Pedro Henrique de Paiva da Silva', s: 'PADARIA', r: 'AJUDANTE DE PADEIRO' },
-        { n: 'Pedro Ryan Silva Martins', s: 'PADARIA', r: 'JOVEM APRENDIZ A' },
-        { n: 'Rafael Silva Lima', s: 'SERVIÇOS GERAIS', r: 'AUX. SERVIÇOS GERAIS' },
-        { n: 'Raionara Pequeno', s: 'CONFEITARIA', r: 'CONFEITEIRO 2' },
-        { n: 'Raniery Alisson dos Santos', s: 'PADARIA', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Raquel de Cassia Kmipp', s: 'BALCÃO PÃES E PASTAS', r: 'ATENDENTE' },
-        { n: 'Rhayellen de Sousa Chaves', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA EXPERIÊNCIA' },
-        { n: 'Risomar Teles Capitulino', s: 'SERVIÇOS GERAIS', r: 'AUX. SERVIÇOS GERAIS' },
-        { n: 'Roberto Barbosa da Silva', s: 'BALCÃO FRIOS', r: 'ATENDENTE 3' },
-        { n: 'Robson Barros de Oliveira Júnior', s: 'COZINHA', r: 'COZINHEIRO(A) 1' },
-        { n: 'Ruan Kmipp Velasco da Silva', s: 'COZINHA', r: 'AJUDANTE DE COZINHA' },
-        { n: 'Sarah Batista Bittencourt', s: 'COZINHA', r: 'JOVEM APRENDIZ A' },
-        { n: 'Sérgio Paulino da Silva', s: 'AÇOUGUE', r: 'AÇOUGUEIRO 2' },
-        { n: 'Silvana dos Reis Gomes', s: 'SUCOS', r: 'AUXILIAR DE LANCHEIRO' },
-        { n: 'Stephanie Luiza Torres', s: 'ATENDIMENTO CAIXAS', r: 'OPERADOR(A) DE CAIXA EXPERIÊNCIA' },
-        { n: 'Sueli Rodrigues dos Santos', s: 'SERVIÇOS GERAIS', r: 'AUX. SERVIÇOS GERAIS' },
-        { n: 'Suellen Alves do Nascimento', s: 'ATENDIMENTO MESAS', r: 'GARÇOM' },
-        { n: 'Taele Santos Cunha', s: 'CONFEITARIA', r: 'AUXILIAR DE CONFEITEIRO' },
-        { n: 'Tamara de Souza Prazeres', s: 'CONFEITARIA', r: 'JOVEM APRENDIZ A' },
-        { n: 'Tamires Mendes Fernandes', s: 'ATENDIMENTO MESAS', r: 'GARÇOM' },
-        { n: 'Tereza Alves da Silva', s: 'SERVIÇOS GERAIS', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Virna Maria Bezerra Nascimento', s: 'EXPEDIÇÃO', r: 'ATENDENTE 1' },
-        { n: 'Wellington de Menezes de Lima', s: 'SERVIÇOS GERAIS', r: 'AUX. SERV. GERAIS EXPERIÊNCIA' },
-        { n: 'Weras Johnson Damião da Silva', s: 'CONFEITARIA', r: 'CONFEITEIRO' },
-        { n: 'Zenilton da Silva Basilio', s: 'SERVIÇOS GERAIS', r: 'AJUDANTE DE PADEIRO' },
-        { n: 'Zuilene Rodrigues de Sousa', s: 'SERVIÇOS GERAIS', r: 'AUX. SERVIÇOS GERAIS' }
-      ];
-
-      // Split into chunks of 100 to avoid batch limits if needed, 
-      // but here we have ~176 employees + ~20 sectors + ~50 roles = ~250 ops.
-      // Firestore batch limit is 500.
-
-      for (const emp of employeesData) {
-        const ref = doc(collection(db, 'employees'));
-        batch.set(ref, {
-          name: emp.n,
-          sectorId: sectorRefs[emp.s] || sectorRefs['SERVIÇOS GERAIS'],
-          roleId: roleRefs[emp.r] || roleRefs['ATENDENTE'],
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
+      for (const sector of seedSectors) {
+        batch.set(doc(db, 'sectors', sector.id), {
+          name: sector.name,
+          color: sector.color,
+          icon: sector.icon,
+          updatedAt: serverTimestamp(),
         });
       }
 
-      // 4. Default Config
+      console.log("Seeding roles...");
+      for (const role of seedRoles) {
+        batch.set(doc(db, 'roles', role.id), {
+          name: role.name,
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      console.log("Seeding employees...");
+      for (const employee of seedEmployees) {
+        batch.set(doc(db, 'employees', employee.id), {
+          name: employee.name,
+          sectorId: employee.sectorId,
+          roleId: employee.roleId,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+
       console.log("Seeding default config...");
-      const rhEmailRef = doc(db, 'config', 'rh_email');
-      batch.set(rhEmailRef, { value: 'sistemas@talhodelicatessen.com.br' });
+      batch.set(doc(db, 'config', 'rh_email'), { value: seedConfig.rh_email });
+      batch.set(doc(db, 'config', 'email_notifications'), { value: seedConfig.email_notifications });
+      batch.set(doc(db, 'config', 'dark_mode'), { value: seedConfig.dark_mode });
 
-      const emailNotifRef = doc(db, 'config', 'email_notifications');
-      batch.set(emailNotifRef, { value: 'true' });
-
-      console.log("Committing batch...");
       await batch.commit();
-      console.log("Batch committed successfully!");
-      showToast("Banco de dados populado com sucesso!");
+      showToast("Base da planilha importada com sucesso!");
     } catch (e) {
       console.error("Error seeding database:", e);
       handleFirestoreError(e, OperationType.WRITE, 'seed');
@@ -2908,7 +2680,7 @@ export default function App() {
                     <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Ações de Sistema</h4>
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                       <p className="text-sm text-slate-600 mb-4">
-                        Popule o banco de dados com dados iniciais (Setores, Cargos e Colaboradores) para começar a usar o sistema rapidamente.
+                        Importe a base da planilha para criar Setores, Cargos normalizados e Colaboradores no sistema.
                       </p>
                       <button 
                         onClick={() => {
@@ -2918,7 +2690,7 @@ export default function App() {
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-all"
                       >
                         <Database size={18} />
-                        Popular Banco de Dados Inicial
+                        Importar Base da Planilha
                       </button>
                     </div>
                   </section>
@@ -3574,7 +3346,7 @@ export default function App() {
               <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Database size={32} />
               </div>
-              <h3 className="text-xl font-bold mb-2">Popular Banco de Dados?</h3>
+              <h3 className="text-xl font-bold mb-2">Importar base da planilha?</h3>
               <p className="text-slate-500 text-sm mb-8">
                 Isso irá adicionar todos os setores, cargos e colaboradores reais ao sistema. Esta ação não pode ser desfeita facilmente.
               </p>

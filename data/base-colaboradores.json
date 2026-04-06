@@ -1,0 +1,1231 @@
+{
+  "sourceFile": "base colaboradores.xlsx",
+  "importedAt": "2026-04-06",
+  "employees": [
+    {
+      "name": "Abraão Resende Ivo",
+      "sector": "BALCÃO FRIOS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Ademilson da Cruz Santana",
+      "sector": "EMPADA",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A) 1",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Adrielly Xavier da Silva",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "CUMIM",
+      "normalizedRole": "CUMIM"
+    },
+    {
+      "name": "Alane da Silva Duarte",
+      "sector": "EMPADA",
+      "shift": "MANHÃ",
+      "role": "AJUDANTE DE COZINHA",
+      "normalizedRole": "AJUDANTE DE COZINHA"
+    },
+    {
+      "name": "Aldenir Severino da Silva",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "LANCHEIRO 2 A",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Aleksandra de Mesquita",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "TARDE",
+      "role": "ATENDENTE EXPERIÊNCIA",
+      "normalizedRole": "ATENDENTE EXPERIÊNCIA"
+    },
+    {
+      "name": "Aleksandro Suarez",
+      "sector": "ATENDIMENTO LOJA",
+      "shift": "GERAL",
+      "role": "ATENDENTE 4",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Alex Alexandre de Aguiar",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO 4",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Alex Braga Nunes",
+      "sector": "EMPADA",
+      "shift": "MANHÃ",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Alex Silva de Souza",
+      "sector": "ESTOQUE",
+      "shift": "MANHÃ",
+      "role": "ESTOQUISTA 2",
+      "normalizedRole": "ESTOQUISTA"
+    },
+    {
+      "name": "Alexia dos Santos Sambonha",
+      "sector": "ESCRITÓRIO",
+      "shift": "GERAL",
+      "role": "TÉCNICA EM NUTRIÇÃO",
+      "normalizedRole": "TÉCNICA EM NUTRIÇÃO"
+    },
+    {
+      "name": "Amanda Andrade da Silva",
+      "sector": "ESCRITÓRIO",
+      "shift": "GERAL",
+      "role": "ASSIST. ADMINISTRATIVO 2",
+      "normalizedRole": "ASSIST. ADMINISTRATIVO"
+    },
+    {
+      "name": "Amilton de Jesus Ferreira dos Santos",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "MANHÃ",
+      "role": "GARÇOM",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Ana Carolina Mendonça Romeu",
+      "sector": "ATENDIMENTO LOJA",
+      "shift": "MANHÃ",
+      "role": "SUPERVISOR 1",
+      "normalizedRole": "SUPERVISOR"
+    },
+    {
+      "name": "Ana Roberta Gomes de Brito",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "MANHÃ",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Andrea da Conceição Rosa",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERVIÇOS GERAIS",
+      "normalizedRole": "AUX. SERVIÇOS GERAIS"
+    },
+    {
+      "name": "Anna Paula Fabíola Gomes",
+      "sector": "PADARIA EMBALAGEM",
+      "shift": "TARDE",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Antonia Laiane Farias Veras",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "MANHÃ",
+      "role": "GARÇOM 1",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Antonio Carlos Torres",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "MANHÃ",
+      "role": "LANCHEIRO 4",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Antonio Cleiton Lopes Leitão",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "CONFEITEIRO 2",
+      "normalizedRole": "CONFEITEIRO"
+    },
+    {
+      "name": "Antonio Dos Reis de Sena Rosa",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "LANCHEIRO",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Antonio Feliciano da Silva",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "TARDE",
+      "role": "LANCHEIRO 2 A",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Antonio Itamar Silva Camelo",
+      "sector": "COZINHA",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A) 1",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Antonio José de Freitas Neto",
+      "sector": "MANUTENÇÃO",
+      "shift": "TARDE",
+      "role": "AUX. MANUTENÇÃO 3",
+      "normalizedRole": "AUX. MANUTENÇÃO"
+    },
+    {
+      "name": "Antonio Marcio Victor Otaviano",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "CONFEITEIRO 3",
+      "normalizedRole": "CONFEITEIRO"
+    },
+    {
+      "name": "Antonio Raquel da Silva",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO 3",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Brenda Alves do Carmo",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "TARDE",
+      "role": "OPERADOR(A) DE CAIXA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA"
+    },
+    {
+      "name": "Brendom Tavares de Melo",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "TARDE",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Bruna Roberta de Andrade",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Bruno Mendonça Ezidio",
+      "sector": "BALCÃO FRIOS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Cailane Mendonça Serra",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Camille de Campos Alves",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Carlos Alberto Silva Bezerra",
+      "sector": "COZINHA",
+      "shift": "TARDE",
+      "role": "COZINHEIRO(A) 1",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Carlos Henrique Viana Felicio",
+      "sector": "COZINHA DELI",
+      "shift": "TARDE",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Carolina Alonso Gonçalves",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "MANHÃ",
+      "role": "OPERADOR(A) DE CAIXA EXPERIÊNCIA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA EXPERIÊNCIA"
+    },
+    {
+      "name": "Cecília Brum Maciel",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Celso Santos de Souza",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "PADEIRO 1",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Cintia Teixeira Coelho",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Cirlene Rodrigues de Souza Ferreira de Andrade",
+      "sector": "EMPADA",
+      "shift": "MANHÃ",
+      "role": "AJUDANTE DE COZINHA",
+      "normalizedRole": "AJUDANTE DE COZINHA"
+    },
+    {
+      "name": "Claudia Regina Moreira Santana",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "MANHÃ",
+      "role": "CUMIM 2",
+      "normalizedRole": "CUMIM"
+    },
+    {
+      "name": "Clenilson Oliveira Santos",
+      "sector": "MASSAS",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A) 2",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Cosme Viana Felicio",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "AJUDANTE DE PADEIRO",
+      "normalizedRole": "AJUDANTE DE PADEIRO"
+    },
+    {
+      "name": "Cristiana Alves de Souza",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "TARDE",
+      "role": "OPERADOR(A) DE CAIXA EXPERIÊNCIA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA EXPERIÊNCIA"
+    },
+    {
+      "name": "Daniela Silva do Nascimento",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "CUMIM",
+      "normalizedRole": "CUMIM"
+    },
+    {
+      "name": "Dayane Coelho Moreira",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "MANHÃ",
+      "role": "OPERADOR(A) DE CAIXA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA"
+    },
+    {
+      "name": "Deuselina Gomes da Silva",
+      "sector": "EXPEDIÇÃO",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Diogo Roberto de Sousa Gonçalvez",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO 1",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Eduardo de Oliveira",
+      "sector": "COZINHA",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A)",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Elibaldo dos Santos Costa",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "PADEIRO 3",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Elinai Felizardo dos Santos",
+      "sector": "BALCÃO FRIOS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Elizangela Alves Cardoso",
+      "sector": "PADARIA EMBALAGEM",
+      "shift": "MANHÃ",
+      "role": "EMBALADOR",
+      "normalizedRole": "EMBALADOR"
+    },
+    {
+      "name": "Elizângela da Silva Santana",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE EXPERIÊNCIA",
+      "normalizedRole": "ATENDENTE EXPERIÊNCIA"
+    },
+    {
+      "name": "Emerson Ferreira da Silva",
+      "sector": "EXPEDIÇÃO",
+      "shift": "TARDE",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Enestina Pereira do Carmo Araújo",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "MANHÃ",
+      "role": "CUMIM",
+      "normalizedRole": "CUMIM"
+    },
+    {
+      "name": "Eriberto Ferreira da Silva",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "TARDE",
+      "role": "LANCHEIRO 3",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Evillyn Ingrid da Silva",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Fabio Soares Barão",
+      "sector": "MASSAS",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A)",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Francinaldo Guedes da Silva",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "GARÇOM",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Francirany Alves de Sousa",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE EXPERIÊNCIA",
+      "normalizedRole": "ATENDENTE EXPERIÊNCIA"
+    },
+    {
+      "name": "Francisca Evanilde de Lima Souza",
+      "sector": "COZINHA",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A)",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Francisco Edson Pereira Moura",
+      "sector": "COZINHA DELI",
+      "shift": "TARDE",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Francisco Leonardo Braga Lima",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "TARDE",
+      "role": "OPERADOR(A) DE CAIXA EXPERIÊNCIA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA EXPERIÊNCIA"
+    },
+    {
+      "name": "Francisco Marquilane dos Santos",
+      "sector": "AÇOUGUE",
+      "shift": "TARDE",
+      "role": "AÇOUGUEIRO 2",
+      "normalizedRole": "AÇOUGUEIRO"
+    },
+    {
+      "name": "Gabriel Pereira da Silva",
+      "sector": "MANUTENÇÃO",
+      "shift": "GERAL",
+      "role": "AUX. MANUTENÇÃO III",
+      "normalizedRole": "AUX. MANUTENÇÃO"
+    },
+    {
+      "name": "Gabriel Vidal Teles de Carvalho",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Gideão Xavier Sant'anna Martins",
+      "sector": "COZINHA DELI",
+      "shift": "TARDE",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Gilson Randolfo da Costa",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "GARÇOM",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Giovanni José F Gomes",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Giselle Favianna Splendiani Yanez",
+      "sector": "CONFEITARIA",
+      "shift": "MANHÃ",
+      "role": "AUXILIAR DE CONFEITEIRO",
+      "normalizedRole": "AUXILIAR DE CONFEITEIRO"
+    },
+    {
+      "name": "Gizele Marinho Nunes",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Graciele Marques de Sousa Mesquita",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "GARÇOM 1",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Guilherme Vitelly Marinho da Rocha",
+      "sector": "ESTOQUE",
+      "shift": "MANHÃ",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Gustavo Batista da Costa",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO 2 A",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Gutamberg Martins de Farias",
+      "sector": "COZINHA",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A) 2",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Helber Pinheiro dos Santos",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Henrique Ernesto da Silva",
+      "sector": "COZINHA DELI",
+      "shift": "TARDE",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Iago Miguel Barbosa de Oliveira",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Igor Bezerra Ferreira",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "TARDE",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Inácia Ribeiro da Silva",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "LANCHEIRO",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Inan Rosa Rodrigues",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "LANCHEIRO",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Isabella Cristine Chavantes Rafael",
+      "sector": "CONFEITARIA",
+      "shift": "MANHÃ",
+      "role": "OPERADOR(A) DE CAIXA EXPERIÊNCIA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA EXPERIÊNCIA"
+    },
+    {
+      "name": "Isis Mayara Candido Albuquerque",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "TARDE",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Israel da Conceição Gama",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "TARDE",
+      "role": "ATENDENTE EXPERIÊNCIA",
+      "normalizedRole": "ATENDENTE EXPERIÊNCIA"
+    },
+    {
+      "name": "Janaina Gomes Soares",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "AJUD. PADEIRO EXPERIÊNCIA",
+      "normalizedRole": "AJUD. PADEIRO EXPERIÊNCIA"
+    },
+    {
+      "name": "Jaqueline Santos da Silva",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "MANHÃ",
+      "role": "GARÇOM",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Jeferson Alves Daniel",
+      "sector": "BALCÃO FRIOS",
+      "shift": "TARDE",
+      "role": "ATENDENTE 3",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Joalane Rocha de O Santos",
+      "sector": "COZINHA",
+      "shift": "TARDE",
+      "role": "COZINHEIRO(A) 3",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Joana Maria Ferreira Sousa",
+      "sector": "ATENDIMENTO LOJA",
+      "shift": "MANHÃ",
+      "role": "SUPERVISOR",
+      "normalizedRole": "SUPERVISOR"
+    },
+    {
+      "name": "João Antonio Marques de Araujo",
+      "sector": "ATENDIMENTO LOJA",
+      "shift": "TARDE",
+      "role": "SUPERVISOR 2",
+      "normalizedRole": "SUPERVISOR"
+    },
+    {
+      "name": "João Batista Ferreira da Silva",
+      "sector": "ESTOQUE",
+      "shift": "MANHÃ",
+      "role": "COMPRADOR 1",
+      "normalizedRole": "COMPRADOR"
+    },
+    {
+      "name": "João Douglas Pereira de Vasconcelos",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "CUMIM",
+      "normalizedRole": "CUMIM"
+    },
+    {
+      "name": "João Paulo Raquel da Silva",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "PADEIRO 2 B",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "João Vitor Rodrigues da Silva",
+      "sector": "ESTOQUE",
+      "shift": "TARDE",
+      "role": "ESTOQUISTA 2",
+      "normalizedRole": "ESTOQUISTA"
+    },
+    {
+      "name": "John Lenon Sousa Araújo",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "TARDE",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Jonatham Batista Tavares",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERVIÇOS GERAIS",
+      "normalizedRole": "AUX. SERVIÇOS GERAIS"
+    },
+    {
+      "name": "Jorge Luiz Carvalho Silva",
+      "sector": "ESTOQUE",
+      "shift": "MANHÃ",
+      "role": "ESTOQUISTA 2",
+      "normalizedRole": "ESTOQUISTA"
+    },
+    {
+      "name": "José Ailton Gonçalves Araújo",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO 2 B",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "José Carlos Higino de Oliveira",
+      "sector": "BALCÃO FRIOS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 4",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "José Francisco de Souza",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "TARDE",
+      "role": "AUX. SERVIÇOS GERAIS",
+      "normalizedRole": "AUX. SERVIÇOS GERAIS"
+    },
+    {
+      "name": "José Pedro da Silva Pereira",
+      "sector": "CONFEITARIA",
+      "shift": "MANHÃ",
+      "role": "CONFEITEIRO",
+      "normalizedRole": "CONFEITEIRO"
+    },
+    {
+      "name": "José Roberto de Sousa Matias",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "PADEIRO 1",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Josean da Silva",
+      "sector": "AÇOUGUE",
+      "shift": "MANHÃ",
+      "role": "AÇOUGUEIRO 2",
+      "normalizedRole": "AÇOUGUEIRO"
+    },
+    {
+      "name": "Joselito Ferreira de França",
+      "sector": "BALCÃO FRIOS",
+      "shift": "TARDE",
+      "role": "ATENDENTE 3",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Josiel de Jesus França da Silva",
+      "sector": "ESTOQUE",
+      "shift": "MANHÃ",
+      "role": "COMPRADOR 1",
+      "normalizedRole": "COMPRADOR"
+    },
+    {
+      "name": "Julia Conceição Corrêa",
+      "sector": "COZINHA",
+      "shift": "TARDE",
+      "role": "COZINHEIRO(A) 1",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Juliana Alves Ferreira",
+      "sector": "ATENDIMENTO LOJA",
+      "shift": "TARDE",
+      "role": "SUPERVISOR 2",
+      "normalizedRole": "SUPERVISOR"
+    },
+    {
+      "name": "Kayane Juvino do Nascimento",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Laerto Cipriano de Paula",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO 1",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Layla Araújo Pereira",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "TARDE",
+      "role": "ATENDENTE 1",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Leandro Rodrigues da Silva",
+      "sector": "ENTREGADOR MOTO",
+      "shift": "MANHÃ",
+      "role": "MOTOCICLISTA",
+      "normalizedRole": "MOTOCICLISTA"
+    },
+    {
+      "name": "Lediana Maria da Silva",
+      "sector": "EXPEDIÇÃO",
+      "shift": "TARDE",
+      "role": "OPERADOR(A) DE CAIXA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA"
+    },
+    {
+      "name": "Leonardo Barbosa Tavares Simplicio",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "PADEIRO",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Leonardo de Sousa Mota",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "PADEIRO 3",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Leonardo Silva dos Santos",
+      "sector": "BALCÃO FRIOS",
+      "shift": "TARDE",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Leticia Campos de Araujo da Silva",
+      "sector": "ESCRITÓRIO",
+      "shift": "GERAL",
+      "role": "ASSIST. ADMINISTRATIVO 2",
+      "normalizedRole": "ASSIST. ADMINISTRATIVO"
+    },
+    {
+      "name": "Lorrana Cristina de Souza Bento",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "MANHÃ",
+      "role": "CUMIM I",
+      "normalizedRole": "CUMIM"
+    },
+    {
+      "name": "Luana dos Santos Peçanha",
+      "sector": "EMPADA",
+      "shift": "MANHÃ",
+      "role": "AJUDANTE DE COZINHA",
+      "normalizedRole": "AJUDANTE DE COZINHA"
+    },
+    {
+      "name": "Luis Horacio Filho",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "PADEIRO 4",
+      "normalizedRole": "PADEIRO"
+    },
+    {
+      "name": "Luisa Eliete de Abreu",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "MANHÃ",
+      "role": "LANCHEIRO 2 B",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Luiz Carlos da Silva",
+      "sector": "BALCÃO FRIOS",
+      "shift": "TARDE",
+      "role": "ATENDENTE EXPERIÊNCIA",
+      "normalizedRole": "ATENDENTE EXPERIÊNCIA"
+    },
+    {
+      "name": "Luiz Henrique Frazão de Azevedo",
+      "sector": "ESTOQUE",
+      "shift": "TARDE",
+      "role": "ESTOQUISTA AUXILIAR",
+      "normalizedRole": "ESTOQUISTA AUXILIAR"
+    },
+    {
+      "name": "Maico de Mesquita Torres",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "CONFEITEIRO 2",
+      "normalizedRole": "CONFEITEIRO"
+    },
+    {
+      "name": "Maise Estefani Soares Pinheiro",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "TARDE",
+      "role": "ATENDENTE EXPERIÊNCIA",
+      "normalizedRole": "ATENDENTE EXPERIÊNCIA"
+    },
+    {
+      "name": "Manoella Ernesto Silva",
+      "sector": "PADARIA EMBALAGEM",
+      "shift": "MANHÃ",
+      "role": "EMBALADOR 1",
+      "normalizedRole": "EMBALADOR"
+    },
+    {
+      "name": "Marcela Zampari",
+      "sector": "ESCRITÓRIO",
+      "shift": "GERAL",
+      "role": "COORDENADORA DE SUPRIMENTOS",
+      "normalizedRole": "COORDENADORA DE SUPRIMENTOS"
+    },
+    {
+      "name": "Marcele Benedito de Abreu",
+      "sector": "EXPEDIÇÃO",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Marcelo Pereira Bittencourt de Souza",
+      "sector": "ESCRITÓRIO",
+      "shift": "GERAL",
+      "role": "COORDENADOR ADMINISTRATIVO",
+      "normalizedRole": "COORDENADOR ADMINISTRATIVO"
+    },
+    {
+      "name": "Marcelo Pereira da Costa",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "CUMIM",
+      "normalizedRole": "CUMIM"
+    },
+    {
+      "name": "Marcelo Sousa da Silva",
+      "sector": "EMPADA",
+      "shift": "MANHÃ",
+      "role": "COZINHEIRO(A) 1",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Marco Antonio da Conceição Pereira",
+      "sector": "BALCÃO FRIOS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 2",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Marcos Barbosa Cavalcante",
+      "sector": "COZINHA DELI",
+      "shift": "TARDE",
+      "role": "LANCHEIRO 2 A",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Maria Elizangela Ferreira Miranda",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "MANHÃ",
+      "role": "OPERADOR(A) DE CAIXA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA"
+    },
+    {
+      "name": "Maria Lorrainy dos Santos Freitas",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "TARDE",
+      "role": "OPERADOR(A) DE CAIXA EXPERIÊNCIA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA EXPERIÊNCIA"
+    },
+    {
+      "name": "Maria Luiza Paulo Silva",
+      "sector": "PADARIA EMBALAGEM",
+      "shift": "TARDE",
+      "role": "EMBALADOR 1",
+      "normalizedRole": "EMBALADOR"
+    },
+    {
+      "name": "Maria Luzia dos Santos",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "TARDE",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Maria Salete da Silva Pereira",
+      "sector": "EXPEDIÇÃO",
+      "shift": "TARDE",
+      "role": "ATENDENTE 3",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Maria Tainá Araújo Veras",
+      "sector": "ATENDIMENTO LOJA",
+      "shift": "MANHÃ",
+      "role": "SUPERVISOR 3",
+      "normalizedRole": "SUPERVISOR"
+    },
+    {
+      "name": "Maria Weslaine da Silva",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE EXPERIÊNCIA",
+      "normalizedRole": "ATENDENTE EXPERIÊNCIA"
+    },
+    {
+      "name": "Mariana da Silva Mendes",
+      "sector": "ATENDIMENTO LOJA",
+      "shift": "MANHÃ",
+      "role": "SUPERVISOR 1",
+      "normalizedRole": "SUPERVISOR"
+    },
+    {
+      "name": "Marys Stella Correa Alves",
+      "sector": "PADARIA EMBALAGEM",
+      "shift": "TARDE",
+      "role": "EMBALADOR",
+      "normalizedRole": "EMBALADOR"
+    },
+    {
+      "name": "Matheus Araújo dos Anjos",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "AJUDANTE DE PADEIRO",
+      "normalizedRole": "AJUDANTE DE PADEIRO"
+    },
+    {
+      "name": "Mauro da Silva Ezidio",
+      "sector": "COZINHA DELI",
+      "shift": "TARDE",
+      "role": "LANCHEIRO 3",
+      "normalizedRole": "LANCHEIRO"
+    },
+    {
+      "name": "Michael Douglas Madeira de Sousa",
+      "sector": "ESTOQUE",
+      "shift": "TARDE",
+      "role": "ESTOQUISTA AUXILIAR",
+      "normalizedRole": "ESTOQUISTA AUXILIAR"
+    },
+    {
+      "name": "Nadia Silene Correia Alves",
+      "sector": "CONFEITARIA",
+      "shift": "MANHÃ",
+      "role": "CONFEITEIRO 3",
+      "normalizedRole": "CONFEITEIRO"
+    },
+    {
+      "name": "Nicolas Mesquita Nascimento",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Pablo Souza Melo",
+      "sector": "ESTOQUE",
+      "shift": "TARDE",
+      "role": "ESTOQUISTA",
+      "normalizedRole": "ESTOQUISTA"
+    },
+    {
+      "name": "Pamela Rosa dos Santos",
+      "sector": "BALCÃO SANDUÍCHE",
+      "shift": "MANHÃ",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Paulo Edgley Serafim",
+      "sector": "COZINHA DELI",
+      "shift": "MANHÃ",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Paulo Sérgio da Cunha",
+      "sector": "AÇOUGUE",
+      "shift": "MANHÃ",
+      "role": "AÇOUGUEIRO 1",
+      "normalizedRole": "AÇOUGUEIRO"
+    },
+    {
+      "name": "Pedro Henrique de Paiva da Silva",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "AJUDANTE DE PADEIRO",
+      "normalizedRole": "AJUDANTE DE PADEIRO"
+    },
+    {
+      "name": "Pedro Ryan Silva Martins",
+      "sector": "PADARIA",
+      "shift": "TARDE",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Rafael Silva Lima",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERVIÇOS GERAIS",
+      "normalizedRole": "AUX. SERVIÇOS GERAIS"
+    },
+    {
+      "name": "Raionara Pequeno",
+      "sector": "CONFEITARIA",
+      "shift": "MANHÃ",
+      "role": "CONFEITEIRO 2",
+      "normalizedRole": "CONFEITEIRO"
+    },
+    {
+      "name": "Raniery Alisson dos Santos",
+      "sector": "PADARIA",
+      "shift": "MANHÃ",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Raquel de Cassia Kmipp",
+      "sector": "BALCÃO PÃES E PASTAS",
+      "shift": "TARDE",
+      "role": "ATENDENTE",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Rhayellen de Sousa Chaves",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "TARDE",
+      "role": "OPERADOR(A) DE CAIXA EXPERIÊNCIA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA EXPERIÊNCIA"
+    },
+    {
+      "name": "Risomar Telis Capitulino",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "TARDE",
+      "role": "AUX. SERVIÇOS GERAIS",
+      "normalizedRole": "AUX. SERVIÇOS GERAIS"
+    },
+    {
+      "name": "Roberto Barbosa da Silva",
+      "sector": "BALCÃO FRIOS",
+      "shift": "TARDE",
+      "role": "ATENDENTE 3",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Robson Barros de Oliveira Júnior",
+      "sector": "COZINHA",
+      "shift": "TARDE",
+      "role": "COZINHEIRO(A) 1",
+      "normalizedRole": "COZINHEIRO(A)"
+    },
+    {
+      "name": "Ruan Kmipp Velasco da Silva",
+      "sector": "COZINHA",
+      "shift": "TARDE",
+      "role": "AJUDANTE DE COZINHA",
+      "normalizedRole": "AJUDANTE DE COZINHA"
+    },
+    {
+      "name": "Sarah Batista Bittencourt",
+      "sector": "COZINHA",
+      "shift": "TARDE",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Sérgio Paulino da Silva",
+      "sector": "AÇOUGUE",
+      "shift": "TARDE",
+      "role": "AÇOUGUEIRO 2",
+      "normalizedRole": "AÇOUGUEIRO"
+    },
+    {
+      "name": "Silvana dos Reis Gomes",
+      "sector": "SUCOS",
+      "shift": "MANHÃ",
+      "role": "AUXILIAR DE LANCHEIRO",
+      "normalizedRole": "AUXILIAR DE LANCHEIRO"
+    },
+    {
+      "name": "Stephanie Luiza Torres",
+      "sector": "ATENDIMENTO CAIXAS",
+      "shift": "TARDE",
+      "role": "OPERADOR(A) DE CAIXA EXPERIÊNCIA",
+      "normalizedRole": "OPERADOR(A) DE CAIXA EXPERIÊNCIA"
+    },
+    {
+      "name": "Sueli Rodrigues dos Santos",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERVIÇOS GERAIS",
+      "normalizedRole": "AUX. SERVIÇOS GERAIS"
+    },
+    {
+      "name": "Suellen Alves do Nascimento",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "MANHÃ",
+      "role": "GARÇOM",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Taele Santos Cunha",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "AUXILIAR DE CONFEITEIRO",
+      "normalizedRole": "AUXILIAR DE CONFEITEIRO"
+    },
+    {
+      "name": "Tamara de Souza Prazeres",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "JOVEM APRENDIZ A",
+      "normalizedRole": "JOVEM APRENDIZ A"
+    },
+    {
+      "name": "Tamires Mendes Fernandes",
+      "sector": "ATENDIMENTO MESAS",
+      "shift": "TARDE",
+      "role": "GARÇOM",
+      "normalizedRole": "GARÇOM"
+    },
+    {
+      "name": "Tereza Alves da Silva",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Virna Maria Bezerra Nascimento",
+      "sector": "EXPEDIÇÃO",
+      "shift": "MANHÃ",
+      "role": "ATENDENTE 1",
+      "normalizedRole": "ATENDENTE"
+    },
+    {
+      "name": "Wellington de Menezes de Lima",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "MANHÃ",
+      "role": "AUX. SERV. GERAIS EXPERIÊNCIA",
+      "normalizedRole": "AUX. SERV. GERAIS EXPERIÊNCIA"
+    },
+    {
+      "name": "Weras Johnson Damião da Silva",
+      "sector": "CONFEITARIA",
+      "shift": "TARDE",
+      "role": "CONFEITEIRO",
+      "normalizedRole": "CONFEITEIRO"
+    },
+    {
+      "name": "Zenilton da Silva Basílio",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "TARDE",
+      "role": "AJUDANTE DE PADEIRO",
+      "normalizedRole": "AJUDANTE DE PADEIRO"
+    },
+    {
+      "name": "Zulene Rodrigues de Sousa",
+      "sector": "SERVIÇOS GERAIS",
+      "shift": "TARDE",
+      "role": "AUX. SERVIÇOS GERAIS",
+      "normalizedRole": "AUX. SERVIÇOS GERAIS"
+    }
+  ]
+}
