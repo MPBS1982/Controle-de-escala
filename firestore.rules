@@ -110,6 +110,8 @@ service cloud.firestore {
       return data.type in ['error', 'warning', 'info'] &&
              data.message is string && data.message.size() < 500 &&
              data.date is string &&
+             (!('title' in data) || (data.title is string && data.title.size() < 150)) &&
+             (!('description' in data) || (data.description is string && data.description.size() < 1000)) &&
              (data.employeeId == null || data.employeeId is string);
     }
 

@@ -1075,10 +1075,11 @@ export default function App() {
       const shiftId = `${year}-${month}-${day}`;
       
       const shiftRef = doc(db, `employees/${empId}/shifts`, shiftId);
-      await setDoc(shiftRef, {
-        day,
-        month,
-        year,
+        await setDoc(shiftRef, {
+          employeeId: empId,
+          day,
+          month,
+          year,
         type: newShift.type,
         time: newShift.time,
         overtime: newShift.overtime || false,
@@ -1132,11 +1133,13 @@ export default function App() {
         showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-      await addDoc(collection(db, 'alerts'), {
-        type: 'error',
-        title: `Falta: ${employee.name}`,
-        description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
-        employeeId: employee.id,
+        await addDoc(collection(db, 'alerts'), {
+          type: 'error',
+          date: new Date().toISOString(),
+          message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
+          title: `Falta: ${employee.name}`,
+          description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
+          employeeId: employee.id,
         createdAt: serverTimestamp()
       });
       
@@ -1180,11 +1183,13 @@ export default function App() {
         showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-      await addDoc(collection(db, 'alerts'), {
-        type: 'warning',
-        title: `Dobra: ${employee.name}`,
-        description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-        sectorId: sector.id,
+        await addDoc(collection(db, 'alerts'), {
+          type: 'warning',
+          date: new Date().toISOString(),
+          message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+          title: `Dobra: ${employee.name}`,
+          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+          sectorId: sector.id,
         employeeId: employee.id,
         createdAt: serverTimestamp()
       });
@@ -1295,11 +1300,13 @@ export default function App() {
         showToast(`Alerta: A solicitação foi feita, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-      await addDoc(collection(db, 'alerts'), {
-        type: 'warning',
-        title: `Solicitação de Hora Extra: ${employee.name}`,
-        description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-        sectorId: sector.id,
+        await addDoc(collection(db, 'alerts'), {
+          type: 'warning',
+          date: new Date().toISOString(),
+          message: `Solicitação de Hora Extra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+          title: `Solicitação de Hora Extra: ${employee.name}`,
+          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+          sectorId: sector.id,
         employeeId: employee.id,
         createdAt: serverTimestamp()
       });
