@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   LayoutDashboard, 
   Clock, 
@@ -845,9 +845,17 @@ export default function App() {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isSpecialScheduleModalOpen, setIsSpecialScheduleModalOpen] = useState(false);
-  const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
-  const [isDoubleShiftModalOpen, setIsDoubleShiftModalOpen] = useState(false);
-  const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
+    const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
+    const [isDoubleShiftModalOpen, setIsDoubleShiftModalOpen] = useState(false);
+    const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
+    const [isSubmittingAbsence, setIsSubmittingAbsence] = useState(false);
+    const [isSubmittingDoubleShift, setIsSubmittingDoubleShift] = useState(false);
+    const [isSubmittingOvertime, setIsSubmittingOvertime] = useState(false);
+    const submissionLocks = useRef({
+      absence: false,
+      doubleShift: false,
+      overtime: false,
+    });
   const [editingEmployee, setEditingEmployee] = useState<any>(null);
   const [editingShift, setEditingShift] = useState<any>(null);
   const [editingSector, setEditingSector] = useState<any>(null);
@@ -1102,10 +1110,13 @@ export default function App() {
   };
 
   const registerAbsence = async (employeeId: string, reason: string) => {
-    const employee = employees.find(e => e.id === employeeId);
-    if (!employee) return;
+      const employee = employees.find(e => e.id === employeeId);
+      if (!employee) return;
+      if (submissionLocks.current.absence) return;
+      submissionLocks.current.absence = true;
+      setIsSubmittingAbsence(true);
 
-    try {
+      try {
       // Send real email
       const emailRes = await fetch('/api/send-email', {
         method: 'POST',
@@ -1133,27 +1144,34 @@ export default function App() {
         showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-        await addDoc(collection(db, 'alerts'), {
-          type: 'error',
-          date: new Date().toISOString(),
-          message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
+          const alertId = `absence_${employee.id}_${new Date().toISOString().slice(0, 10)}`;
+          await setDoc(doc(db, 'alerts', alertId), {
+            type: 'error',
+            date: new Date().toISOString(),
+            message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
           title: `Falta: ${employee.name}`,
           description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
           employeeId: employee.id,
         createdAt: serverTimestamp()
       });
       
-      showToast("Ausência registrada e RH notificado por e-mail!");
-      setIsAbsenceModalOpen(false);
-    } catch (e) { 
-      handleFirestoreError(e, OperationType.CREATE, 'alerts');
-    }
-  };
+        showToast("Ausência registrada e RH notificado por e-mail!");
+        setIsAbsenceModalOpen(false);
+      } catch (e) { 
+        handleFirestoreError(e, OperationType.CREATE, 'alerts');
+      } finally {
+        submissionLocks.current.absence = false;
+        setIsSubmittingAbsence(false);
+      }
+    };
   
   const registerDoubleShift = async (employeeId: string, date: string, sectorId: string) => {
-    const employee = employees.find(e => e.id === employeeId);
-    const sector = sectors.find(s => s.id === sectorId);
-    if (!employee || !sector) return;
+      const employee = employees.find(e => e.id === employeeId);
+      const sector = sectors.find(s => s.id === sectorId);
+      if (!employee || !sector) return;
+      if (submissionLocks.current.doubleShift) return;
+      submissionLocks.current.doubleShift = true;
+      setIsSubmittingDoubleShift(true);
 
     try {
       // Send real email
@@ -1183,10 +1201,11 @@ export default function App() {
         showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-        await addDoc(collection(db, 'alerts'), {
-          type: 'warning',
-          date: new Date().toISOString(),
-          message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+          const alertId = `double_${employee.id}_${date}_${sector.id}`;
+          await setDoc(doc(db, 'alerts', alertId), {
+            type: 'warning',
+            date: new Date().toISOString(),
+            message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
           title: `Dobra: ${employee.name}`,
           description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
           sectorId: sector.id,
@@ -1194,12 +1213,15 @@ export default function App() {
         createdAt: serverTimestamp()
       });
       
-      showToast("Dobra registrada e RH notificado por e-mail!");
-      setIsDoubleShiftModalOpen(false);
-    } catch (e) { 
-      handleFirestoreError(e, OperationType.CREATE, 'alerts');
-    }
-  };
+        showToast("Dobra registrada e RH notificado por e-mail!");
+        setIsDoubleShiftModalOpen(false);
+      } catch (e) { 
+        handleFirestoreError(e, OperationType.CREATE, 'alerts');
+      } finally {
+        submissionLocks.current.doubleShift = false;
+        setIsSubmittingDoubleShift(false);
+      }
+    };
 
   const generateEmployeeReport = () => {
     const doc = new jsPDF();
@@ -1268,9 +1290,12 @@ export default function App() {
   };
 
   const requestOvertime = async (employeeId: string, date: string, sectorId: string) => {
-    const employee = employees.find(e => e.id === employeeId);
-    const sector = sectors.find(s => s.id === sectorId);
-    if (!employee || !sector) return;
+      const employee = employees.find(e => e.id === employeeId);
+      const sector = sectors.find(s => s.id === sectorId);
+      if (!employee || !sector) return;
+      if (submissionLocks.current.overtime) return;
+      submissionLocks.current.overtime = true;
+      setIsSubmittingOvertime(true);
 
     try {
       // Send real email
@@ -1300,10 +1325,11 @@ export default function App() {
         showToast(`Alerta: A solicitação foi feita, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
       }
 
-        await addDoc(collection(db, 'alerts'), {
-          type: 'warning',
-          date: new Date().toISOString(),
-          message: `Solicitação de Hora Extra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
+          const alertId = `overtime_${employee.id}_${date}_${sector.id}`;
+          await setDoc(doc(db, 'alerts', alertId), {
+            type: 'warning',
+            date: new Date().toISOString(),
+            message: `Solicitação de Hora Extra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
           title: `Solicitação de Hora Extra: ${employee.name}`,
           description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
           sectorId: sector.id,
@@ -1311,12 +1337,15 @@ export default function App() {
         createdAt: serverTimestamp()
       });
       
-      showToast("Solicitação enviada ao RH por e-mail!");
-      setIsOvertimeModalOpen(false);
-    } catch (e) { 
-      handleFirestoreError(e, OperationType.CREATE, 'alerts');
-    }
-  };
+        showToast("Solicitação enviada ao RH por e-mail!");
+        setIsOvertimeModalOpen(false);
+      } catch (e) { 
+        handleFirestoreError(e, OperationType.CREATE, 'alerts');
+      } finally {
+        submissionLocks.current.overtime = false;
+        setIsSubmittingOvertime(false);
+      }
+    };
 
   if (!isAuthReady) {
     return (
@@ -3208,7 +3237,9 @@ export default function App() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsAbsenceModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
-                  <button type="submit" className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold">Registrar Falta</button>
+                  <button type="submit" disabled={isSubmittingAbsence} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isSubmittingAbsence ? 'Registrando...' : 'Registrar Falta'}
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -3261,7 +3292,9 @@ export default function App() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsDoubleShiftModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
-                  <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">Registrar Dobra</button>
+                  <button type="submit" disabled={isSubmittingDoubleShift} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isSubmittingDoubleShift ? 'Registrando...' : 'Registrar Dobra'}
+                  </button>
                 </div>
               </form>
             </motion.div>
@@ -3314,7 +3347,9 @@ export default function App() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsOvertimeModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
-                  <button type="submit" className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg font-bold">Solicitar Hora Extra</button>
+                  <button type="submit" disabled={isSubmittingOvertime} className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isSubmittingOvertime ? 'Enviando...' : 'Solicitar Hora Extra'}
+                  </button>
                 </div>
               </form>
             </motion.div>
