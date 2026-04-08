@@ -1335,7 +1335,7 @@ export default function App() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 w-full max-w-md"
+            className="bg-white p-5 sm:p-8 rounded-2xl shadow-xl border border-slate-200 w-full max-w-[95vw] sm:max-w-md"
         >
           <div className="flex flex-col items-center mb-8">
             <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center text-white mb-4 shadow-lg shadow-primary/20">
@@ -1418,7 +1418,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className={cn(
-        "flex h-screen overflow-hidden font-display relative transition-colors duration-200",
+        "flex min-h-screen lg:h-screen overflow-hidden font-display relative transition-colors duration-200",
         darkMode ? "bg-slate-950 text-slate-100" : "bg-background-light text-slate-900"
       )}>
       {/* Mobile Sidebar Overlay */}
@@ -1436,11 +1436,11 @@ export default function App() {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 border-r flex flex-col shrink-0 transition-transform lg:relative lg:translate-x-0",
+        "fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] border-r flex flex-col shrink-0 transition-transform lg:relative lg:translate-x-0 lg:w-64",
         darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="p-6">
+        <div className="p-5 sm:p-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/20">
               <Shield size={24} />
@@ -1562,17 +1562,17 @@ export default function App() {
       )}>
         {/* Header */}
         <header className={cn(
-          "backdrop-blur-md border-b px-4 lg:px-8 py-4 flex items-center justify-between shrink-0",
+          "backdrop-blur-md border-b px-4 lg:px-8 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shrink-0",
           darkMode ? "bg-slate-900/80 border-slate-800" : "bg-white/80 border-slate-200"
         )}>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4 min-w-0 w-full sm:w-auto">
             <button 
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 hover:bg-slate-100 rounded-lg lg:hidden"
             >
               <LayoutDashboard size={20} />
             </button>
-            <div>
+            <div className="min-w-0">
               <h2 className="text-lg lg:text-xl font-bold">
                 {view === 'dashboard' && 'Escala Ipanema'}
                 {view === 'planner' && 'Planejador de Turnos'}
@@ -1588,7 +1588,7 @@ export default function App() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-2 lg:gap-4 self-end sm:self-auto">
             <div className="relative hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
@@ -1616,7 +1616,7 @@ export default function App() {
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-400">
               <motion.div
@@ -1685,10 +1685,10 @@ export default function App() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                   {/* Presence Chart Placeholder */}
-                  <div className="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center justify-between mb-8">
+                    <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
                       <div>
                         <h4 className="font-bold text-lg">Presença em Tempo Real por Departamento</h4>
                         <p className="text-sm text-slate-500">Porcentagem de presença ao vivo hoje</p>
@@ -1721,8 +1721,8 @@ export default function App() {
                   </div>
 
                   {/* Alerts */}
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                    <div className="flex items-center justify-between mb-6">
+                    <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                       <h4 className="font-bold text-lg">Alertas Recentes</h4>
                       <button className="text-primary text-xs font-bold hover:underline">Ver Tudo</button>
                     </div>
@@ -1771,19 +1771,19 @@ export default function App() {
 
                 {/* Double Shifts Table */}
                 <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                     <div>
                       <h4 className="font-bold text-lg">Resumo de Próximos Turnos Duplos</h4>
                       <p className="text-xs text-slate-500">Gestão de dobras e turnos estendidos</p>
                     </div>
-                    <div className="flex gap-4 items-center">
+                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
                       <button 
                         onClick={() => setIsDoubleShiftModalOpen(true)}
                         className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
                       >
                         <Plus size={14} /> Registrar Dobra
                       </button>
-                      <div className="flex gap-4">
+                        <div className="flex gap-4 flex-wrap">
                         <span className="flex items-center gap-1.5 text-xs text-slate-500">
                           <span className="w-2 h-2 rounded-full bg-green-500"></span> Confirmado
                         </span>
@@ -1898,7 +1898,7 @@ export default function App() {
                   darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
                 )}
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h3 className="text-xl font-bold">Gestão de Cargos</h3>
                   <button 
                     onClick={() => { setEditingRole(null); setIsRoleModalOpen(true); }}
@@ -1909,7 +1909,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {roles.map(role => (
-                    <div key={`role-${role.id}`} className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between group">
+                    <div key={`role-${role.id}`} className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 group">
                       <div>
                         <p className="font-bold text-slate-900">{role.name}</p>
                         <p className="text-xs text-slate-500">
@@ -1945,7 +1945,7 @@ export default function App() {
                   darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
                 )}
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h3 className="text-xl font-bold">Gestão de Usuários</h3>
                   <button 
                     onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }}
@@ -2018,7 +2018,7 @@ export default function App() {
               >
                 {/* Planner Sub-header */}
                 <div className={cn(
-                  "p-6 border-b flex items-center justify-between shrink-0",
+                  "p-6 border-b flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between shrink-0",
                   darkMode ? "border-slate-800" : "border-slate-200"
                 )}>
                   <div className="flex items-center gap-4">
@@ -2296,7 +2296,7 @@ export default function App() {
                       <span className="text-xs font-medium">Licença/Férias</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs font-medium text-slate-500">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-medium text-slate-500">
                     <div className="flex items-center gap-1.5">
                       <Zap size={14} />
                       <span>Hora Extra Aprovada</span>
@@ -2306,7 +2306,7 @@ export default function App() {
                       <span>Turno Duplo</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 text-xs">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs">
                     <span className="px-2 py-1 rounded bg-slate-100 font-bold">Total de Equipe Necessária: 18</span>
                     <span className="px-2 py-1 rounded bg-primary/10 text-primary font-bold">Atribuído: 16</span>
                     <span className="px-2 py-1 rounded bg-red-50 text-red-600 font-bold">Lacuna: -2</span>
@@ -2323,7 +2323,7 @@ export default function App() {
                   darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
                 )}
               >
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <div className="flex items-center gap-4">
                     <h3 className="text-xl font-bold">Colaboradores</h3>
                     <button 
@@ -2346,7 +2346,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {filteredAndSortedEmployees.map(emp => (
-                    <div key={`emp-card-${emp.id}`} className="p-4 border border-slate-100 rounded-xl flex items-center gap-4 hover:border-primary/30 transition-colors group relative">
+                    <div key={`emp-card-${emp.id}`} className="p-4 border border-slate-100 rounded-xl flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 hover:border-primary/30 transition-colors group relative">
                       <button 
                         onClick={() => {
                           setEditingEmployee(emp);
@@ -2384,7 +2384,7 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 className="text-xl font-bold">Gestão de Ausências</h3>
                   <button 
                     onClick={() => setIsAbsenceModalOpen(true)}
@@ -2396,10 +2396,10 @@ export default function App() {
                 <div className="grid grid-cols-1 gap-4">
                   {alerts.filter(a => a.type === 'error').map((alert, idx) => (
                     <div key={`absence-alert-${alert.id ?? `idx-${idx}`}`} className={cn(
-                      "p-4 rounded-xl border flex items-center justify-between",
+                      "p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3",
                       darkMode ? "bg-slate-900 border-red-900/30" : "bg-white border-red-100"
                     )}>
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4">
                         <div className="p-2 bg-red-50 rounded-lg text-red-500">
                           <UserMinus size={20} />
                         </div>
@@ -2430,7 +2430,7 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 className="text-xl font-bold">Horas Extras</h3>
                   <button 
                     onClick={() => setIsOvertimeModalOpen(true)}
@@ -2441,7 +2441,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {alerts.filter(a => a.type === 'warning').map((alert, idx) => (
-                    <div key={`overtime-alert-${alert.id ?? `idx-${idx}`}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex items-center justify-between">
+                    <div key={`overtime-alert-${alert.id ?? `idx-${idx}`}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex items-center gap-4">
                         <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
                           <Clock size={20} />
@@ -2473,7 +2473,7 @@ export default function App() {
                   darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
                 )}
               >
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
                   <h3 className="text-xl font-bold">Gestão de Setores</h3>
                   <button 
                     onClick={() => { setEditingSector(null); setIsSectorModalOpen(true); }}
@@ -2484,7 +2484,7 @@ export default function App() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {sectors.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase())).map(sector => (
-                    <div key={`sector-${sector.id}`} className="p-4 border border-slate-100 rounded-xl flex items-center justify-between hover:border-primary/30 transition-colors">
+                    <div key={`sector-${sector.id}`} className="p-4 border border-slate-100 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-primary/30 transition-colors">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500">
                           <Users size={20} />
@@ -2515,11 +2515,11 @@ export default function App() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={cn(
-                  "rounded-xl border shadow-sm p-8 max-w-2xl mx-auto",
+                  "rounded-xl border shadow-sm p-5 sm:p-8 max-w-full sm:max-w-2xl mx-auto",
                   darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
                 )}
               >
-                <div className="flex items-center gap-4 mb-8">
+                <div className="flex items-start sm:items-center gap-3 sm:gap-4 mb-8">
                   <div className="p-3 bg-primary/10 rounded-xl text-primary">
                     <Settings size={32} />
                   </div>
@@ -2533,7 +2533,7 @@ export default function App() {
                   <section>
                     <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Preferências Gerais</h4>
                     <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg">
                         <div>
                           <p className="font-semibold">Notificações por E-mail</p>
                           <p className="text-sm text-slate-500">Receba alertas de ausências por e-mail</p>
@@ -2551,7 +2551,7 @@ export default function App() {
                           )} />
                         </div>
                       </div>
-                      <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg">
                         <div>
                           <p className="font-semibold">Modo Escuro</p>
                           <p className="text-sm text-slate-500">Ajuste a interface para ambientes escuros</p>
@@ -2730,7 +2730,7 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 className="text-xl font-bold">Escalas Especiais (Eventos)</h3>
                   <button 
                     onClick={() => setIsSpecialScheduleModalOpen(true)}
@@ -2813,11 +2813,11 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-6"
               >
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 className="text-xl font-bold">Relatórios e Exportação</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center mb-4">
                       <Users size={24} />
                     </div>
@@ -2831,7 +2831,7 @@ export default function App() {
                     </button>
                   </div>
                   
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="w-12 h-12 bg-emerald-50 text-emerald-500 rounded-lg flex items-center justify-center mb-4">
                       <CalendarDays size={24} />
                     </div>
@@ -2845,7 +2845,7 @@ export default function App() {
                     </button>
                   </div>
 
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                     <div className="w-12 h-12 bg-purple-50 text-purple-500 rounded-lg flex items-center justify-center mb-4">
                       <Zap size={24} />
                     </div>
@@ -2885,7 +2885,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">{editingEmployee ? 'Editar Colaborador' : 'Novo Colaborador'}</h3>
               <form onSubmit={(e: any) => {
@@ -2944,7 +2944,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">{editingRole ? 'Editar Cargo' : 'Novo Cargo'}</h3>
               <form onSubmit={(e: any) => {
@@ -2976,7 +2976,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</h3>
               <form onSubmit={(e: any) => {
@@ -3031,7 +3031,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">Editar Turno</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -3070,7 +3070,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">{editingSector ? 'Editar Setor' : 'Novo Setor'}</h3>
               <form onSubmit={(e: any) => {
@@ -3108,7 +3108,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8 max-h-[90vh] overflow-y-auto"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8 max-h-[90vh] overflow-y-auto"
             >
               <h3 className="text-xl font-bold mb-6">{editingSpecialSchedule ? 'Editar Escala de Evento' : 'Nova Escala de Evento'}</h3>
               <form onSubmit={(e: any) => {
@@ -3182,7 +3182,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">Registrar Falta</h3>
               <form onSubmit={(e: any) => {
@@ -3225,7 +3225,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">Registrar Dobra</h3>
               <form onSubmit={(e: any) => {
@@ -3278,7 +3278,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-8"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-6">Solicitar Hora Extra</h3>
               <form onSubmit={(e: any) => {
@@ -3327,7 +3327,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 50 }}
             className={cn(
-              "fixed bottom-8 right-8 z-[200] px-6 py-3 rounded-xl shadow-2xl font-bold text-white flex items-center gap-3",
+              "fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 z-[200] px-4 sm:px-6 py-3 rounded-xl shadow-2xl font-bold text-white flex items-center gap-3 sm:max-w-sm",
               toast.type === 'success' ? "bg-emerald-600" : toast.type === 'info' ? "bg-blue-600" : "bg-red-600"
             )}
           >
@@ -3348,7 +3348,7 @@ export default function App() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-8 text-center"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-sm p-5 sm:p-8 text-center"
             >
               <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Database size={32} />
