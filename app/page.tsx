@@ -660,7 +660,7 @@ export default function App() {
         // Check if user exists in Firestore, if not create them
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const userCanBeMaster = isMasterEmail(user.email) && user.emailVerified;
+            const userCanBeMaster = isMasterEmail(user.email);
           if (!userDoc.exists()) {
             const newUser = {
               uid: user.uid,

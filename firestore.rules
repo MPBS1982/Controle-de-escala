@@ -46,13 +46,12 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
         ((exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
-          isMasterEmailVerified());
+          isMasterEmail());
     }
 
-    function isMasterEmailVerified() {
+    function isMasterEmail() {
       return isAuthenticated() &&
-        request.auth.token.email == "sistemas@talhodelicatessen.com.br" &&
-        request.auth.token.email_verified == true;
+        request.auth.token.email == "sistemas@talhodelicatessen.com.br";
     }
 
     function isOwner(userId) {
@@ -185,13 +184,13 @@ service cloud.firestore {
                       (
                         isAdmin() ||
                         (isOwner(userId) && request.resource.data.role == 'user') ||
-                        (isMasterEmailVerified() && isOwner(userId) && request.resource.data.role == 'admin')
+                        (isMasterEmail() && isOwner(userId) && request.resource.data.role == 'admin')
                       );
       allow update: if isAuthenticated() && isValidUser(request.resource.data, userId) && 
                       (
                         isAdmin() ||
                         (isOwner(userId) && request.resource.data.role == resource.data.role) ||
-                        (isMasterEmailVerified() && isOwner(userId) && request.resource.data.role == 'admin')
+                        (isMasterEmail() && isOwner(userId) && request.resource.data.role == 'admin')
                       );
       allow delete: if isAdmin();
     }
