@@ -1149,6 +1149,23 @@ export default function App() {
         updatedAt: serverTimestamp()
       });
       
+      setEmployees(prev =>
+        prev.map(emp =>
+          emp.id === empId
+            ? {
+                ...emp,
+                shifts: Array.isArray(emp.shifts)
+                  ? emp.shifts.map((shift: any, index: number) =>
+                      index === dayIndex
+                        ? { type: newShift.type, time: newShift.time, overtime: newShift.overtime || false }
+                        : shift
+                    )
+                  : emp.shifts,
+              }
+            : emp
+        )
+      );
+      
       showToast("Escala atualizada!");
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `employees/${empId}/shifts`);
@@ -3211,9 +3228,9 @@ export default function App() {
                   <button
                     key={`picker-${option.type}`}
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!shiftPickerTarget) return;
-                      updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
+                      await updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
                       setIsShiftPickerOpen(false);
                       setShiftPickerTarget(null);
                     }}
