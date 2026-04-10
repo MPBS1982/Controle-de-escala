@@ -72,7 +72,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 // --- Types ---
 
-type View = 'dashboard' | 'planner' | 'employees' | 'absences' | 'overtime' | 'sectors' | 'special_schedules' | 'settings' | 'roles' | 'users' | 'reports';
+  type View = 'dashboard' | 'planner' | 'employees' | 'absences' | 'double_shifts' | 'overtime' | 'sectors' | 'special_schedules' | 'settings' | 'roles' | 'users' | 'reports';
 
 // --- Mock Data ---
 
@@ -532,6 +532,14 @@ export default function App() {
     }
     return result;
   }, [employees, searchQuery, sortAlphabetical, plannerSectorFilter, roles]);
+
+  const doubleShiftAlerts = useMemo(() => {
+    return alerts.filter(alert => alert.type === 'warning' && String(alert.title || '').startsWith('Dobra:'));
+  }, [alerts]);
+
+  const overtimeAlerts = useMemo(() => {
+    return alerts.filter(alert => alert.type === 'warning' && !String(alert.title || '').startsWith('Dobra:'));
+  }, [alerts]);
 
   // Error handling for Firestore
   enum OperationType {
@@ -1525,6 +1533,14 @@ export default function App() {
             darkMode={darkMode}
           />
           <SidebarItem 
+            icon={Layers} 
+            label="Dobras" 
+            badge={doubleShiftAlerts.length.toString()} 
+            active={view === 'double_shifts'}
+            onClick={() => { setView('double_shifts'); setIsSidebarOpen(false); }}
+            darkMode={darkMode}
+          />
+          <SidebarItem 
             icon={Users} 
             label="Colaboradores" 
             active={view === 'employees'}
@@ -1623,6 +1639,7 @@ export default function App() {
                 {view === 'sectors' && 'Gestão de Setores'}
                 {view === 'users' && 'Gestão de Usuários'}
                 {view === 'absences' && 'Gestão de Ausências'}
+                {view === 'double_shifts' && 'Gestão de Dobras'}
                 {view === 'overtime' && 'Horas Extras'}
               </h2>
               <p className="text-xs lg:text-sm text-slate-500 hidden sm:block">
@@ -1706,7 +1723,7 @@ export default function App() {
                   <MetricCard 
                     icon={Clock} 
                     label="Horas Extras Pendentes" 
-                    value={alerts.filter(a => a.type === 'warning').length.toString()} 
+                    value={overtimeAlerts.length.toString()} 
                     subValue=" total" 
                     trend="Revisar" 
                     trendColor="text-slate-500 bg-slate-100"
@@ -2465,6 +2482,65 @@ export default function App() {
                   )}
                 </div>
               </motion.div>
+            ) : view === 'double_shifts' ? (
+              <motion.div
+                key="double_shifts"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-bold">Gestão de Dobras</h3>
+                    <p className="text-sm text-slate-500">Turnos duplos registrados no sistema</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsDoubleShiftModalOpen(true)}
+                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                  >
+                    <Plus size={16} /> Registrar Dobra
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {doubleShiftAlerts.length > 0 ? doubleShiftAlerts.map((alert, idx) => {
+                    const employeeName = String(alert.title || 'Dobra').replace(/^Dobra:\s*/, '') || 'Colaborador';
+                    return (
+                      <div key={`double-shift-alert-${alert.id ?? `idx-${idx}`}`} className={cn(
+                        "p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3",
+                        darkMode ? "bg-slate-900 border-yellow-900/30" : "bg-white border-yellow-100"
+                      )}>
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
+                            <CalendarDays size={20} />
+                          </div>
+                          <div>
+                            <p className="font-bold">{employeeName}</p>
+                            <p className={cn("text-sm", darkMode ? "text-slate-400" : "text-slate-500")}>
+                              {alert.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 self-start sm:self-auto">
+                          <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-yellow-100 text-yellow-700">
+                            Dobra
+                          </span>
+                          <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
+                            <Ban size={18} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }) : (
+                    <div className={cn(
+                      "text-center py-12 rounded-xl border border-dashed text-slate-400",
+                      darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                    )}>
+                      Nenhuma dobra registrada.
+                    </div>
+                  )}
+                </div>
+              </motion.div>
             ) : view === 'overtime' ? (
               <motion.div
                 key="overtime"
@@ -2482,7 +2558,7 @@ export default function App() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
-                  {alerts.filter(a => a.type === 'warning').map((alert, idx) => (
+                  {overtimeAlerts.map((alert, idx) => (
                     <div key={`overtime-alert-${alert.id ?? `idx-${idx}`}`} className="bg-white p-4 rounded-xl border border-yellow-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div className="flex items-center gap-4">
                         <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
@@ -2498,7 +2574,7 @@ export default function App() {
                       </button>
                     </div>
                   ))}
-                  {alerts.filter(a => a.type === 'warning').length === 0 && (
+                  {overtimeAlerts.length === 0 && (
                     <div className="text-center py-12 bg-white rounded-xl border border-dashed border-slate-200 text-slate-400">
                       Nenhum alerta de hora extra pendente.
                     </div>
@@ -2674,7 +2750,8 @@ export default function App() {
                                     <p><strong>Resumo de Alertas:</strong></p>
                                     <ul>
                                       <li><strong>Faltas:</strong> ${alerts.filter(a => a.type === 'error').length}</li>
-                                      <li><strong>Horas Extras/Dobras:</strong> ${alerts.filter(a => a.type === 'warning').length}</li>
+                                      <li><strong>Horas Extras:</strong> ${overtimeAlerts.length}</li>
+                                      <li><strong>Dobras:</strong> ${doubleShiftAlerts.length}</li>
                                     </ul>
                                     <p><strong>Detalhes dos Alertas:</strong></p>
                                     <table style="width: 100%; border-collapse: collapse;">
