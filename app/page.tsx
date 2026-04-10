@@ -1078,6 +1078,18 @@ export default function App() {
     }
   };
 
+  const openNewSpecialScheduleModal = () => {
+    setEditingSpecialSchedule(null);
+    setSelectedEmployeesForSpecial([]);
+    setIsSpecialScheduleModalOpen(true);
+  };
+
+  const openEditSpecialScheduleModal = (schedule: any) => {
+    setEditingSpecialSchedule(schedule);
+    setSelectedEmployeesForSpecial((schedule.employees || []).map((e: any) => e.id));
+    setIsSpecialScheduleModalOpen(true);
+  };
+
   const saveConfig = async (key: string, value: string, silent = false) => {
     try {
       await setDoc(doc(db, 'config', key), { value, updatedAt: serverTimestamp() });
@@ -1104,6 +1116,12 @@ export default function App() {
       const shiftId = `${year}-${month}-${day}`;
       
       const shiftRef = doc(db, `employees/${empId}/shifts`, shiftId);
+      if (newShift.type === 'empty') {
+        await deleteDoc(shiftRef);
+        showToast("Escala removida.");
+        return;
+      }
+
         await setDoc(shiftRef, {
           employeeId: empId,
           day,
@@ -2852,7 +2870,7 @@ export default function App() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <h3 className="text-xl font-bold">Escalas Especiais (Eventos)</h3>
                   <button 
-                    onClick={() => setIsSpecialScheduleModalOpen(true)}
+                    onClick={openNewSpecialScheduleModal}
                     className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                   >
                     <Plus size={16} /> Nova Escala de Evento
@@ -2905,11 +2923,7 @@ export default function App() {
                       </div>
                       <div className="flex gap-3 pt-2 border-t border-slate-50">
                         <button 
-                          onClick={() => {
-                            setEditingSpecialSchedule(schedule);
-                            setSelectedEmployeesForSpecial(schedule.employees.map((e: any) => e.id));
-                            setIsSpecialScheduleModalOpen(true);
-                          }}
+                          onClick={() => openEditSpecialScheduleModal(schedule)}
                           className="flex-1 text-xs font-bold py-2 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100"
                         >
                           Editar Escala
@@ -3152,7 +3166,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
-              <h3 className="text-xl font-bold mb-6">Editar Turno</h3>
+              <h3 className="text-xl font-bold mb-6">Trocar ou Limpar Escala</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { type: 'Manhã', label: 'Manhã', time: '07:00' },
@@ -3161,6 +3175,7 @@ export default function App() {
                   { type: 'off', label: 'Folga', time: '-' },
                 ].map(s => (
                   <button
+                    type="button"
                     key={`shift-type-${s.type}`}
                     onClick={() => {
                       updateShift(editingShift.empId, editingShift.dayIndex, s);
@@ -3173,6 +3188,23 @@ export default function App() {
                     <p className="text-xs text-slate-400">{s.time}</p>
                   </button>
                 ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!editingShift) return;
+                    updateShift(editingShift.empId, editingShift.dayIndex, { type: 'empty' });
+                    setIsShiftModalOpen(false);
+                    setEditingShift(null);
+                  }}
+                  className="w-full p-4 rounded-xl border border-red-100 bg-red-50 text-red-700 font-bold hover:bg-red-100 transition-colors"
+                >
+                  Limpar Escala
+                </button>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Use esta opção quando a escala foi preenchida por engano.
+                </p>
               </div>
             </motion.div>
           </div>
