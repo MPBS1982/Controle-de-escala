@@ -1124,6 +1124,27 @@ export default function App() {
     }
   };
 
+  const applyShiftLocally = (empId: string, dayIndex: number, newShift: any) => {
+    setEmployees(prev =>
+      prev.map(emp =>
+        emp.id === empId
+          ? {
+              ...emp,
+              shifts: Array.isArray(emp.shifts)
+                ? emp.shifts.map((shift: any, index: number) =>
+                    index === dayIndex
+                      ? (newShift.type === 'empty'
+                          ? { type: 'empty' }
+                          : { type: newShift.type, time: newShift.time, overtime: !!newShift.overtime })
+                      : shift
+                  )
+                : emp.shifts,
+            }
+          : emp
+      )
+    );
+  };
+
   const updateShift = async (empId: string, dayIndex: number, newShift: any) => {
     try {
       const day = dayIndex + 1;
@@ -1133,41 +1154,13 @@ export default function App() {
       
       const shiftRef = doc(db, `employees/${empId}/shifts`, shiftId);
       if (newShift.type === 'empty') {
-        setEmployees(prev =>
-          prev.map(emp =>
-            emp.id === empId
-              ? {
-                  ...emp,
-                  shifts: Array.isArray(emp.shifts)
-                    ? emp.shifts.map((shift: any, index: number) =>
-                        index === dayIndex ? { type: 'empty' } : shift
-                      )
-                    : emp.shifts,
-                }
-              : emp
-          )
-        );
+        applyShiftLocally(empId, dayIndex, newShift);
         await deleteDoc(shiftRef);
         showToast("Escala removida.");
         return;
       }
 
-      setEmployees(prev =>
-        prev.map(emp =>
-          emp.id === empId
-            ? {
-                ...emp,
-                shifts: Array.isArray(emp.shifts)
-                  ? emp.shifts.map((shift: any, index: number) =>
-                      index === dayIndex
-                        ? { type: newShift.type, time: newShift.time, overtime: !!newShift.overtime }
-                        : shift
-                    )
-                  : emp.shifts,
-              }
-            : emp
-        )
-      );
+      applyShiftLocally(empId, dayIndex, newShift);
 
         await setDoc(shiftRef, {
           employeeId: empId,
@@ -3242,11 +3235,12 @@ export default function App() {
                   <button
                     key={`picker-${option.type}`}
                     type="button"
-                    onClick={async () => {
+                    onClick={() => {
                       if (!shiftPickerTarget) return;
-                      await updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
+                      applyShiftLocally(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
                       setIsShiftPickerOpen(false);
                       setShiftPickerTarget(null);
+                      void updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
                     }}
                     className={cn(
                       "p-4 border rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left",
