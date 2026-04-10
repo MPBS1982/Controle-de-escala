@@ -250,6 +250,13 @@ const MetricCard = ({ icon: Icon, label, value, subValue, trend, trendColor, ico
   </div>
 );
 
+const SHIFT_PRESETS = [
+  { type: 'Manhã', label: 'Turno Manhã', time: '07:00', color: 'bg-blue-500 text-white' },
+  { type: 'Tarde', label: 'Turno Tarde', time: '15:00', color: 'bg-orange-500 text-white' },
+  { type: 'vacation', label: 'Licença/Férias', time: '-', color: 'bg-amber-500 text-white' },
+  { type: 'off', label: 'Folga', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
+] as const;
+
 const ShiftBadge = ({ type, time, overtime }: any) => {
   const styles: any = {
     'Manhã': "bg-blue-500 text-white",
@@ -477,6 +484,8 @@ export default function App() {
   const [selectedEmployeesForSpecial, setSelectedEmployeesForSpecial] = useState<number[]>([]);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
+  const [selectedShiftPreset, setSelectedShiftPreset] = useState<(typeof SHIFT_PRESETS)[number]['type']>('Manhã');
+  const selectedShiftPresetData = SHIFT_PRESETS.find(preset => preset.type === selectedShiftPreset) ?? SHIFT_PRESETS[0];
 
   const getFriendlyAuthError = (error: unknown, action: 'google' | 'email' | 'reset') => {
     const code = typeof error === 'object' && error && 'code' in error
@@ -2292,12 +2301,32 @@ export default function App() {
                                              currentDate.getDate();
                             return emp.shifts.slice(startDay - 1, startDay - 1 + daysToShow).map((shift: any, i: number) => (
                               <td key={`shift-${emp.id ?? `idx-${idx}`}-${i}`} className="p-1 border-b border-slate-200">
-                                <div onClick={() => {
-                                  setEditingShift({ empId: emp.id, dayIndex: startDay - 1 + i });
-                                  setIsShiftModalOpen(true);
-                                }}>
-                                  <ShiftBadge {...shift} />
-                                </div>
+                                {shift.type === 'empty' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => updateShift(emp.id, startDay - 1 + i, selectedShiftPresetData)}
+                                    className="w-full"
+                                    title={`Aplicar ${selectedShiftPresetData.label}`}
+                                  >
+                                    <div className={cn(
+                                      "h-10 rounded flex items-center justify-center text-slate-300 cursor-pointer transition-colors border-2 border-dashed border-slate-200 hover:bg-slate-50",
+                                      selectedShiftPresetData.color
+                                    )}>
+                                      <Plus size={14} />
+                                    </div>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="w-full"
+                                    onClick={() => {
+                                      setEditingShift({ empId: emp.id, dayIndex: startDay - 1 + i });
+                                      setIsShiftModalOpen(true);
+                                    }}
+                                  >
+                                    <ShiftBadge {...shift} />
+                                  </button>
+                                )}
                               </td>
                             ));
                           })()}
@@ -2360,18 +2389,23 @@ export default function App() {
                 )}>
                   <div className="flex items-center gap-6">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Legenda:</span>
-                    <div className="flex items-center gap-2">
-                      <div className="size-3 rounded bg-blue-500"></div>
-                      <span className="text-xs font-medium">Turno Manhã</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="size-3 rounded bg-orange-500"></div>
-                      <span className="text-xs font-medium">Turno Tarde</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="size-3 rounded bg-amber-500"></div>
-                      <span className="text-xs font-medium">Licença/Férias</span>
-                    </div>
+                    {SHIFT_PRESETS.map((preset) => (
+                      <button
+                        key={`legend-${preset.type}`}
+                        type="button"
+                        onClick={() => setSelectedShiftPreset(preset.type)}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all",
+                          selectedShiftPreset === preset.type
+                            ? "border-primary bg-primary/5 shadow-sm"
+                            : "border-transparent hover:bg-slate-50"
+                        )}
+                        title="Clique para selecionar este preenchimento"
+                      >
+                        <div className={cn("size-3 rounded", preset.color.split(' ')[0])}></div>
+                        <span className="text-xs font-medium">{preset.label}</span>
+                      </button>
+                    ))}
                   </div>
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-medium text-slate-500">
                     <div className="flex items-center gap-1.5">
