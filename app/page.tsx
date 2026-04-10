@@ -1133,22 +1133,25 @@ export default function App() {
       
       const shiftRef = doc(db, `employees/${empId}/shifts`, shiftId);
       if (newShift.type === 'empty') {
+        setEmployees(prev =>
+          prev.map(emp =>
+            emp.id === empId
+              ? {
+                  ...emp,
+                  shifts: Array.isArray(emp.shifts)
+                    ? emp.shifts.map((shift: any, index: number) =>
+                        index === dayIndex ? { type: 'empty' } : shift
+                      )
+                    : emp.shifts,
+                }
+              : emp
+          )
+        );
         await deleteDoc(shiftRef);
         showToast("Escala removida.");
         return;
       }
 
-      await setDoc(shiftRef, {
-          employeeId: empId,
-          day,
-          month,
-          year,
-        type: newShift.type,
-        time: newShift.time,
-        overtime: !!newShift.overtime,
-        updatedAt: serverTimestamp()
-      });
-      
       setEmployees(prev =>
         prev.map(emp =>
           emp.id === empId
@@ -1165,6 +1168,17 @@ export default function App() {
             : emp
         )
       );
+
+        await setDoc(shiftRef, {
+          employeeId: empId,
+          day,
+          month,
+          year,
+        type: newShift.type,
+        time: newShift.time,
+        overtime: !!newShift.overtime,
+        updatedAt: serverTimestamp()
+      });
       
       showToast("Escala atualizada!");
     } catch (e) {
