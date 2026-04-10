@@ -484,6 +484,8 @@ export default function App() {
   const [selectedEmployeesForSpecial, setSelectedEmployeesForSpecial] = useState<number[]>([]);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
+  const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
+  const [shiftPickerTarget, setShiftPickerTarget] = useState<{ empId: string; dayIndex: number } | null>(null);
   const [selectedShiftPreset, setSelectedShiftPreset] = useState<(typeof SHIFT_PRESETS)[number]['type']>('Manhã');
   const selectedShiftPresetData = SHIFT_PRESETS.find(preset => preset.type === selectedShiftPreset) ?? SHIFT_PRESETS[0];
 
@@ -2304,14 +2306,14 @@ export default function App() {
                                 {shift.type === 'empty' ? (
                                   <button
                                     type="button"
-                                    onClick={() => updateShift(emp.id, startDay - 1 + i, selectedShiftPresetData)}
+                                    onClick={() => {
+                                      setShiftPickerTarget({ empId: emp.id, dayIndex: startDay - 1 + i });
+                                      setIsShiftPickerOpen(true);
+                                    }}
                                     className="w-full"
-                                    title={`Aplicar ${selectedShiftPresetData.label}`}
+                                    title="Selecionar escala"
                                   >
-                                    <div className={cn(
-                                      "h-10 rounded flex items-center justify-center text-slate-300 cursor-pointer transition-colors border-2 border-dashed border-slate-200 hover:bg-slate-50",
-                                      selectedShiftPresetData.color
-                                    )}>
+                                    <div className="h-10 rounded flex items-center justify-center text-slate-300 cursor-pointer transition-colors border-2 border-dashed border-slate-200 hover:bg-slate-50">
                                       <Plus size={14} />
                                     </div>
                                   </button>
@@ -2390,21 +2392,10 @@ export default function App() {
                   <div className="flex items-center gap-6">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Legenda:</span>
                     {SHIFT_PRESETS.map((preset) => (
-                      <button
-                        key={`legend-${preset.type}`}
-                        type="button"
-                        onClick={() => setSelectedShiftPreset(preset.type)}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all",
-                          selectedShiftPreset === preset.type
-                            ? "border-primary bg-primary/5 shadow-sm"
-                            : "border-transparent hover:bg-slate-50"
-                        )}
-                        title="Clique para selecionar este preenchimento"
-                      >
+                      <div key={`legend-${preset.type}`} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-transparent">
                         <div className={cn("size-3 rounded", preset.color.split(' ')[0])}></div>
                         <span className="text-xs font-medium">{preset.label}</span>
-                      </button>
+                      </div>
                     ))}
                   </div>
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs font-medium text-slate-500">
@@ -3184,6 +3175,65 @@ export default function App() {
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">Salvar</button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+        {isShiftPickerOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsShiftPickerOpen(false);
+                setShiftPickerTarget(null);
+              }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
+            >
+              <h3 className="text-xl font-bold mb-2">Selecionar Escala</h3>
+              <p className="text-sm text-slate-500 mb-6">Escolha o preenchimento para este quadrinho.</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { type: 'Manhã', label: 'Manhã', time: '07:00', color: 'bg-blue-500 text-white' },
+                  { type: 'Tarde', label: 'Tarde', time: '15:00', color: 'bg-orange-500 text-white' },
+                  { type: 'off', label: 'Folga', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
+                  { type: 'vacation', label: 'Férias', time: '-', color: 'bg-amber-500 text-white' },
+                ].map(option => (
+                  <button
+                    key={`picker-${option.type}`}
+                    type="button"
+                    onClick={() => {
+                      if (!shiftPickerTarget) return;
+                      updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
+                      setIsShiftPickerOpen(false);
+                      setShiftPickerTarget(null);
+                    }}
+                    className={cn(
+                      "p-4 border rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left",
+                      option.color
+                    )}
+                  >
+                    <p className="font-bold text-sm">{option.label}</p>
+                    <p className="text-xs opacity-80">{option.time}</p>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsShiftPickerOpen(false);
+                    setShiftPickerTarget(null);
+                  }}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600"
+                >
+                  Cancelar
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
