@@ -1802,205 +1802,36 @@ export default function App() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-                  {/* Presence Chart Placeholder */}
-                    <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
-                      <div>
-                        <h4 className="font-bold text-lg">Presença em Tempo Real por Departamento</h4>
-                        <p className="text-sm text-slate-500">Porcentagem de presença ao vivo hoje</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold text-primary">94.6%</p>
-                        <p className="text-xs font-medium text-slate-400">Média Global</p>
-                      </div>
-                    </div>
-                    <div className="flex items-end justify-between h-48 px-4">
-                      {DEPARTMENTS.map((dept, i) => {
-                        const heights = [96, 85, 92, 78, 88, 94];
-                        return (
-                          <div key={`dept-chart-${dept}`} className="flex flex-col items-center gap-3 w-full group">
-                            <div className="w-12 bg-primary/10 rounded-t-lg relative flex items-end justify-center group-hover:bg-primary/20 transition-colors h-full">
-                              <motion.div 
-                                initial={{ height: 0 }}
-                                animate={{ height: `${heights[i]}%` }}
-                                className="w-12 bg-primary rounded-t-lg"
-                              />
-                              <span className="absolute -top-7 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
-                                {heights[i]}%
-                              </span>
-                            </div>
-                            <span className="text-xs font-bold text-slate-500">{dept}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Alerts */}
-                    <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-                      <h4 className="font-bold text-lg">Alertas Recentes</h4>
-                      <button className="text-primary text-xs font-bold hover:underline">Ver Tudo</button>
-                    </div>
-                    <div className="space-y-4">
-                      {alerts.length > 0 ? alerts.slice(0, 3).map((alert, idx) => (
-                        <div key={`alert-dash-${alert.id ?? `idx-${idx}`}`} className={cn(
-                          "flex gap-4 p-3 rounded-lg border",
-                          alert.type === 'error' ? "bg-red-50 border-red-100" : 
-                          alert.type === 'warning' ? "bg-yellow-50 border-yellow-100" : "bg-blue-50 border-blue-100"
-                        )}>
-                          <div className={cn(
-                            "p-1.5 rounded-lg h-fit",
-                            alert.type === 'error' ? "text-red-500 bg-red-100" : 
-                            alert.type === 'warning' ? "text-yellow-500 bg-yellow-100" : "text-blue-500 bg-blue-100"
-                          )}>
-                            {alert.type === 'error' ? <AlertCircle size={18} /> : 
-                             alert.type === 'warning' ? <AlertTriangle size={18} /> : <Info size={18} />}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-bold text-slate-900">{alert.title}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">{alert.description}</p>
-                            <div className="flex gap-2 mt-2">
-                              <button 
-                                onClick={() => removeAlert(alert.id)}
-                                className="text-[10px] font-bold px-2 py-1 rounded bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                              >
-                                Resolver
-                              </button>
-                              <button 
-                                onClick={() => removeAlert(alert.id)}
-                                className="text-[10px] font-bold px-2 py-1 rounded bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-                              >
-                                Ignorar
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )) : (
-                        <div className="text-center py-8 text-slate-400 text-sm">
-                          Nenhum alerta pendente.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Double Shifts Table */}
-                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
                     <div>
-                      <h4 className="font-bold text-lg">Resumo de Próximos Turnos Duplos</h4>
-                      <p className="text-xs text-slate-500">Gestão de dobras e turnos estendidos</p>
+                      <h4 className="font-bold text-lg">Presença em Tempo Real por Departamento</h4>
+                      <p className="text-sm text-slate-500">Porcentagem de presença ao vivo hoje</p>
                     </div>
-                      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
-                      <button 
-                        onClick={() => setIsDoubleShiftModalOpen(true)}
-                        className="bg-primary text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 hover:bg-primary/90 transition-colors"
-                      >
-                        <Plus size={14} /> Registrar Dobra
-                      </button>
-                        <div className="flex gap-4 flex-wrap">
-                        <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <span className="w-2 h-2 rounded-full bg-green-500"></span> Confirmado
-                        </span>
-                        <span className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <span className="w-2 h-2 rounded-full bg-yellow-500"></span> Pendente
-                        </span>
-                      </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-primary">94.6%</p>
+                      <p className="text-xs font-medium text-slate-400">Média Global</p>
                     </div>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
-                          <th className="pb-3 pl-2">Funcionário</th>
-                          <th className="pb-3">Departamento</th>
-                          <th className="pb-3">Turno A (Horário)</th>
-                          <th className="pb-3">Turno B (Horário)</th>
-                          <th className="pb-3">Conformidade</th>
-                          <th className="pb-3 text-right pr-2">Ação</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {doubleShifts.map((shift, idx) => (
-                          <tr key={`double-shift-${shift.id ?? `idx-${idx}`}`} className="group hover:bg-slate-50 transition-colors">
-                            <td className="py-4 pl-2">
-                              <div className="flex items-center gap-3">
-                                <Image src={getAvatarUrl(shift.avatar, shift.name)} width={32} height={32} className="rounded-full bg-slate-200 object-cover" alt={shift.name} referrerPolicy="no-referrer" />
-                                <span className="text-sm font-semibold">{shift.name}</span>
-                              </div>
-                            </td>
-                            <td className="py-4 text-sm text-slate-600">{shift.dept}</td>
-                            <td className="py-4 text-sm">{shift.shiftA}</td>
-                            <td className="py-4 text-sm">{shift.shiftB}</td>
-                            <td className="py-4">
-                              <span className={cn(
-                                "px-2 py-1 text-[10px] font-bold rounded-full",
-                                shift.status === 'Período de Descanso OK' ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-                              )}>
-                                {shift.status}
-                              </span>
-                            </td>
-                            <td className="py-4 text-right pr-2 relative">
-                              <button 
-                                onClick={() => setActiveActionMenu(activeActionMenu === shift.id ? null : shift.id)}
-                                className="text-slate-400 hover:text-primary p-1 rounded-full hover:bg-slate-100 transition-colors"
-                              >
-                                <MoreVertical size={20} />
-                              </button>
-                              
-                              <AnimatePresence>
-                                {activeActionMenu === shift.id && (
-                                  <>
-                                    <div 
-                                      className="fixed inset-0 z-30" 
-                                      onClick={() => setActiveActionMenu(null)}
-                                    />
-                                    <motion.div
-                                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                      className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 z-40 py-2 text-left"
-                                    >
-                                      <button 
-                                        onClick={() => {
-                                          showToast(`Turno de ${shift.name} aprovado!`);
-                                          setActiveActionMenu(null);
-                                        }}
-                                        className="w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                      >
-                                        <Zap size={14} className="text-emerald-500" /> Aprovar Turno
-                                      </button>
-                                      <button 
-                                        onClick={() => {
-                                          showToast(`Solicitação de revisão enviada para ${shift.name}`);
-                                          setActiveActionMenu(null);
-                                        }}
-                                        className="w-full px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                                      >
-                                        <AlertTriangle size={14} className="text-yellow-500" /> Solicitar Revisão
-                                      </button>
-                                      <div className="h-px bg-slate-100 my-1" />
-                                      <button 
-                                        onClick={() => {
-                                          setDoubleShifts(prev => prev.filter(s => s.id !== shift.id));
-                                          showToast("Turno removido da lista.");
-                                          setActiveActionMenu(null);
-                                        }}
-                                        className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                      >
-                                        <Ban size={14} /> Remover da Lista
-                                      </button>
-                                    </motion.div>
-                                  </>
-                                )}
-                              </AnimatePresence>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className="flex items-end justify-between h-48 px-4">
+                    {DEPARTMENTS.map((dept, i) => {
+                      const heights = [96, 85, 92, 78, 88, 94];
+                      return (
+                        <div key={`dept-chart-${dept}`} className="flex flex-col items-center gap-3 w-full group">
+                          <div className="w-12 bg-primary/10 rounded-t-lg relative flex items-end justify-center group-hover:bg-primary/20 transition-colors h-full">
+                            <motion.div
+                              initial={{ height: 0 }}
+                              animate={{ height: `${heights[i]}%` }}
+                              className="w-12 bg-primary rounded-t-lg"
+                            />
+                            <span className="absolute -top-7 text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                              {heights[i]}%
+                            </span>
+                          </div>
+                          <span className="text-xs font-bold text-slate-500">{dept}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </motion.div>
