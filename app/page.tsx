@@ -1138,14 +1138,14 @@ export default function App() {
         return;
       }
 
-        await setDoc(shiftRef, {
+      await setDoc(shiftRef, {
           employeeId: empId,
           day,
           month,
           year,
         type: newShift.type,
         time: newShift.time,
-        overtime: newShift.overtime || false,
+        overtime: !!newShift.overtime,
         updatedAt: serverTimestamp()
       });
       
@@ -1157,7 +1157,7 @@ export default function App() {
                 shifts: Array.isArray(emp.shifts)
                   ? emp.shifts.map((shift: any, index: number) =>
                       index === dayIndex
-                        ? { type: newShift.type, time: newShift.time, overtime: newShift.overtime || false }
+                        ? { type: newShift.type, time: newShift.time, overtime: !!newShift.overtime }
                         : shift
                     )
                   : emp.shifts,

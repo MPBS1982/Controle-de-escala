@@ -16,7 +16,7 @@ service cloud.firestore {
     // Fields: name (string)
     //
     // Collection: shifts
-    // Fields: employeeId (string), day (int), month (int), year (int), type (string), time (string), overtime (int)
+    // Fields: employeeId (string), day (int), month (int), year (int), type (string), time (string), overtime (bool)
     //
     // Collection: special_schedules
     // Fields: name (string), date (string), status (string)
@@ -93,7 +93,7 @@ service cloud.firestore {
              data.year is int &&
              data.type is string && data.type.size() < 50 &&
              (!('time' in data) || data.time == null || (data.time is string && data.time.size() < 20)) &&
-             (!('overtime' in data) || data.overtime == null || data.overtime is int);
+             (!('overtime' in data) || data.overtime == null || data.overtime is bool);
     }
 
     function isValidSpecialSchedule(data) {
