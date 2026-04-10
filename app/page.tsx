@@ -122,7 +122,7 @@ const DOUBLE_SHIFTS = [
     shiftA: '06:00 - 14:00',
     shiftB: '14:00 - 22:00',
     status: 'Período de Descanso OK',
-    avatar: 'https://picsum.photos/seed/jordan/100/100'
+    avatar: null
   },
   {
     id: 2,
@@ -131,7 +131,7 @@ const DOUBLE_SHIFTS = [
     shiftA: '08:00 - 16:00',
     shiftB: '22:00 - 06:00',
     status: 'Consentimento Pendente',
-    avatar: 'https://picsum.photos/seed/elena/100/100'
+    avatar: null
   },
   {
     id: 3,
@@ -140,7 +140,7 @@ const DOUBLE_SHIFTS = [
     shiftA: '09:00 - 17:00',
     shiftB: '17:00 - 01:00',
     status: 'Período de Descanso OK',
-    avatar: 'https://picsum.photos/seed/david/100/100'
+    avatar: null
   }
 ];
 
@@ -153,7 +153,7 @@ const PLANNER_DATA = [
     id: 1,
     name: 'Alex Johnson',
     role: 'Supervisor',
-    avatar: 'https://picsum.photos/seed/alex/100/100',
+    avatar: null,
     shifts: [
       { day: 1, type: 'day', time: '08:00' },
       { day: 2, type: 'day', time: '08:00' },
@@ -171,7 +171,7 @@ const PLANNER_DATA = [
     id: 2,
     name: 'Sarah Chen',
     role: 'Técnico',
-    avatar: 'https://picsum.photos/seed/sarah/100/100',
+    avatar: null,
     shifts: [
       { day: 1, type: 'empty' },
       { day: 2, type: 'night', time: '22:00' },
@@ -189,7 +189,7 @@ const PLANNER_DATA = [
     id: 3,
     name: 'Marcus Wright',
     role: 'Operador',
-    avatar: 'https://picsum.photos/seed/marcus/100/100',
+    avatar: null,
     shifts: [
       { day: 1, type: '12x36', time: '08:00' },
       { day: 2, type: 'empty' },
@@ -543,11 +543,24 @@ export default function App() {
     WRITE = 'write',
   }
 
-  const getAvatarUrl = (url: string | undefined | null, seed: string = 'user') => {
-    if (!url || url.trim() === '') {
-      return `https://picsum.photos/seed/${seed}/100/100`;
-    }
-    return url;
+  const getAvatarUrl = (_url: string | undefined | null, seed: string = 'user') => {
+    const initials = seed
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map(part => part.charAt(0).toUpperCase())
+      .join('') || 'U';
+
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100" fill="none">
+        <rect width="100" height="100" rx="50" fill="#E2E8F0"/>
+        <circle cx="50" cy="42" r="16" fill="#94A3B8"/>
+        <path d="M22 82c4-14 16-22 28-22s24 8 28 22" fill="#94A3B8"/>
+        <text x="50" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#475569">${initials}</text>
+      </svg>
+    `;
+
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   };
 
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
@@ -2924,7 +2937,7 @@ export default function App() {
                   name: formData.get('name'),
                   roleId: formData.get('roleId') as string,
                   sectorId: formData.get('sectorId') as string || null,
-                  avatar: editingEmployee?.avatar || `https://picsum.photos/seed/${formData.get('name')}/100/100`
+                  avatar: null
                 });
               }} className="space-y-4">
                 <div>
