@@ -6,12 +6,10 @@ export async function POST(request: Request) {
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
-      console.warn('RESEND_API_KEY is not set. Email sending is simulated.');
-      return NextResponse.json({
-        success: true,
-        message: 'Email sending simulated (API key missing)',
-        simulated: true,
-      });
+      return NextResponse.json(
+        { error: 'RESEND_API_KEY is not set.' },
+        { status: 500 }
+      );
     }
 
     const resend = new Resend(apiKey);
@@ -25,7 +23,7 @@ export async function POST(request: Request) {
     console.log(`Attempting to send email to: ${to}`);
 
     const { data, error } = await resend.emails.send({
-      from: 'Escala do Talho <onboarding@resend.dev>',
+      from: process.env.RESEND_FROM_EMAIL || 'Escala do Talho <onboarding@resend.dev>',
       to: [to],
       subject: subject || 'Notificacao Escala do Talho',
       html,

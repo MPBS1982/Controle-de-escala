@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
@@ -82,7 +82,7 @@ const ALERTS = [
   {
     id: 1,
     type: 'error',
-    title: 'Ausência não Justificada',
+    title: 'AusÃªncia nÃ£o Justificada',
     description: 'Marcus Webb - Depto Tec',
     icon: AlertCircle,
     color: 'text-red-500',
@@ -93,7 +93,7 @@ const ALERTS = [
   {
     id: 2,
     type: 'warning',
-    title: 'Hora Extra não Autorizada',
+    title: 'Hora Extra nÃ£o Autorizada',
     description: 'Sarah Jenkins +2.5h',
     icon: AlertTriangle,
     color: 'text-yellow-500',
@@ -104,7 +104,7 @@ const ALERTS = [
   {
     id: 3,
     type: 'info',
-    title: 'Nova Solicitação de Folga',
+    title: 'Nova SolicitaÃ§Ã£o de Folga',
     description: 'Leo G. solicitou 3 dias',
     icon: Info,
     color: 'text-blue-500',
@@ -118,10 +118,10 @@ const DOUBLE_SHIFTS = [
   {
     id: 1,
     name: 'Jordan Smith',
-    dept: 'Operações',
+    dept: 'OperaÃ§Ãµes',
     shiftA: '06:00 - 14:00',
     shiftB: '14:00 - 22:00',
-    status: 'Período de Descanso OK',
+    status: 'PerÃ­odo de Descanso OK',
     avatar: null
   },
   {
@@ -139,7 +139,7 @@ const DOUBLE_SHIFTS = [
     dept: 'Tecnologia',
     shiftA: '09:00 - 17:00',
     shiftB: '17:00 - 01:00',
-    status: 'Período de Descanso OK',
+    status: 'PerÃ­odo de Descanso OK',
     avatar: null
   }
 ];
@@ -147,6 +147,19 @@ const DOUBLE_SHIFTS = [
 const MASTER_EMAIL = 'sistemas@talhodelicatessen.com.br';
 
 const isMasterEmail = (email?: string | null) => (email || '').toLowerCase() === MASTER_EMAIL;
+const normalizeAccessRole = (role?: string | null) => {
+  const value = (role || 'user').toLowerCase();
+  return value === 'manager' ? 'supervisor' : value;
+};
+
+const getAccessRoleLabel = (role?: string | null, isMaster?: boolean) => {
+  if (isMaster) return 'Master';
+  const normalized = normalizeAccessRole(role);
+  if (normalized === 'supervisor') return 'Supervisor';
+  if (normalized === 'admin') return 'Administrador';
+  if (normalized === 'user') return 'UsuÃ¡rio';
+  return role || 'UsuÃ¡rio';
+};
 
 const PLANNER_DATA = [
   {
@@ -170,7 +183,7 @@ const PLANNER_DATA = [
   {
     id: 2,
     name: 'Sarah Chen',
-    role: 'Técnico',
+    role: 'TÃ©cnico',
     avatar: null,
     shifts: [
       { day: 1, type: 'empty' },
@@ -251,18 +264,18 @@ const MetricCard = ({ icon: Icon, label, value, subValue, trend, trendColor, ico
 );
 
 const SHIFT_PRESETS = [
-  { type: 'day', label: 'Turno Manhã', time: '07:00', color: 'bg-blue-500 text-white' },
+  { type: 'day', label: 'Turno ManhÃ£', time: '07:00', color: 'bg-blue-500 text-white' },
   { type: 'night', label: 'Turno Tarde', time: '15:00', color: 'bg-orange-500 text-white' },
-  { type: 'vacation', label: 'Férias', time: '-', color: 'bg-amber-500 text-white' },
+  { type: 'vacation', label: 'FÃ©rias', time: '-', color: 'bg-amber-500 text-white' },
   { type: 'off', label: 'Folga', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
 ] as const;
 
 const ShiftBadge = ({ type, time, overtime }: any) => {
-    const normalizedType = type === 'day' || type === 'Manhã' ? 'day' : type === 'night' || type === 'Tarde' ? 'night' : type;
+    const normalizedType = type === 'day' || type === 'ManhÃ£' ? 'day' : type === 'night' || type === 'Tarde' ? 'night' : type;
     const labelMap: Record<string, string> = {
-    day: 'Manhã',
+    day: 'ManhÃ£',
     night: 'Tarde',
-    vacation: 'Férias',
+    vacation: 'FÃ©rias',
     off: 'Folga',
   };
   const styles: any = {
@@ -340,7 +353,7 @@ export default function App() {
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const daysToShow = plannerViewMode === 'monthly' ? daysInMonth : plannerViewMode === 'weekly' ? 7 : 1;
     
-    const headers = [['Funcionário', ...Array.from({ length: daysToShow }, (_, i) => {
+    const headers = [['FuncionÃ¡rio', ...Array.from({ length: daysToShow }, (_, i) => {
       const day = i + 1;
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
       return date.toLocaleString('pt-BR', { weekday: 'short' }).substring(0, 1).toUpperCase() + day.toString().padStart(2, '0');
@@ -421,11 +434,11 @@ export default function App() {
     
     doc.setFontSize(12);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Cargo: ${emp.role} | Mês: ${monthName}`, 14, 28);
+    doc.text(`Cargo: ${emp.role} | MÃªs: ${monthName}`, 14, 28);
     
     const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     
-    const headers = [['Dia', 'Semana', 'Turno', 'Horário', 'Obs']];
+    const headers = [['Dia', 'Semana', 'Turno', 'HorÃ¡rio', 'Obs']];
     const body = emp.shifts.slice(0, daysInMonth).map((shift: any, i: number) => {
       const day = i + 1;
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
@@ -435,10 +448,10 @@ export default function App() {
       let timeLabel = shift.time || '-';
       
       switch(shift.type) {
-        case 'day': typeLabel = 'Manhã'; break;
+        case 'day': typeLabel = 'ManhÃ£'; break;
         case 'night': typeLabel = 'Noite'; break;
         case '12x36': typeLabel = '12x36'; break;
-        case 'vacation': typeLabel = 'Férias'; timeLabel = '-'; break;
+        case 'vacation': typeLabel = 'FÃ©rias'; timeLabel = '-'; break;
         case 'off': typeLabel = 'Folga'; timeLabel = '-'; break;
         case 'empty': typeLabel = '-'; timeLabel = '-'; break;
         default: typeLabel = shift.type;
@@ -465,7 +478,7 @@ export default function App() {
           if (data.row.cells[2].raw === 'Folga') {
             data.cell.styles.textColor = [239, 68, 68];
           }
-          if (data.row.cells[2].raw === 'Férias') {
+          if (data.row.cells[2].raw === 'FÃ©rias') {
             data.cell.styles.textColor = [245, 158, 11];
           }
         }
@@ -502,31 +515,31 @@ export default function App() {
       ? String((error as { message?: string }).message || '')
       : String(error);
 
-    const commonFix = 'Verifique no Firebase Console se o provedor está habilitado e se o domínio da Vercel está em Authorized domains.';
+    const commonFix = 'Verifique no Firebase Console se o provedor estÃ¡ habilitado e se o domÃ­nio da Vercel estÃ¡ em Authorized domains.';
 
     const messages: Record<string, string> = {
       'auth/popup-blocked': 'O navegador bloqueou a janela de login do Google. Tente novamente ou permita pop-ups.',
       'auth/popup-closed-by-user': 'A janela de login do Google foi fechada antes de concluir.',
-      'auth/cancelled-popup-request': 'Outra tentativa de login com Google já estava em andamento.',
-      'auth/unauthorized-domain': `Este domínio não está autorizado no Firebase Auth. ${commonFix}`,
-      'auth/operation-not-allowed': 'Este método de autenticação não está habilitado no Firebase Authentication.',
-      'auth/configuration-not-found': 'O Firebase Auth deste projeto não está configurado corretamente. Ative Authentication no Console e habilite Google e Email/Password.',
-      'auth/account-exists-with-different-credential': 'Já existe uma conta com este e-mail usando outro método de login.',
-      'auth/invalid-email': 'O e-mail informado é inválido.',
+      'auth/cancelled-popup-request': 'Outra tentativa de login com Google jÃ¡ estava em andamento.',
+      'auth/unauthorized-domain': `Este domÃ­nio nÃ£o estÃ¡ autorizado no Firebase Auth. ${commonFix}`,
+      'auth/operation-not-allowed': 'Este mÃ©todo de autenticaÃ§Ã£o nÃ£o estÃ¡ habilitado no Firebase Authentication.',
+      'auth/configuration-not-found': 'O Firebase Auth deste projeto nÃ£o estÃ¡ configurado corretamente. Ative Authentication no Console e habilite Google e Email/Password.',
+      'auth/account-exists-with-different-credential': 'JÃ¡ existe uma conta com este e-mail usando outro mÃ©todo de login.',
+      'auth/invalid-email': 'O e-mail informado Ã© invÃ¡lido.',
       'auth/user-not-found': 'Nenhuma conta foi encontrada com esse e-mail.',
       'auth/wrong-password': 'Senha incorreta.',
-      'auth/invalid-credential': 'Credenciais inválidas. Verifique o e-mail e a senha.',
+      'auth/invalid-credential': 'Credenciais invÃ¡lidas. Verifique o e-mail e a senha.',
       'auth/user-disabled': 'Esta conta foi desativada.',
       'auth/too-many-requests': 'Muitas tentativas. Aguarde um pouco antes de tentar de novo.',
       'auth/network-request-failed': 'Falha de rede ao tentar autenticar.',
-      'auth/expired-action-code': 'O link ou código de redefinição de senha expirou.',
-      'auth/invalid-action-code': 'O link ou código de redefinição de senha é inválido.',
+      'auth/expired-action-code': 'O link ou cÃ³digo de redefiniÃ§Ã£o de senha expirou.',
+      'auth/invalid-action-code': 'O link ou cÃ³digo de redefiniÃ§Ã£o de senha Ã© invÃ¡lido.',
     };
 
     const contextual: Record<typeof action, string> = {
       google: 'Falha ao entrar com Google',
       email: 'Falha ao entrar com e-mail e senha',
-      reset: 'Falha ao enviar a redefinição de senha',
+      reset: 'Falha ao enviar a redefiniÃ§Ã£o de senha',
     };
 
     const detail = messages[code] || rawMessage;
@@ -672,7 +685,7 @@ export default function App() {
     setIsResettingPassword(true);
     try {
       await sendPasswordResetEmail(auth, email);
-      showToast("E-mail de redefinição enviado");
+      showToast("E-mail de redefiniÃ§Ã£o enviado");
     } catch (error) {
       console.error("Password reset error:", error);
       showToast(getFriendlyAuthError(error, 'reset'), "error");
@@ -685,7 +698,7 @@ export default function App() {
     try {
       await signOut(auth);
       setCurrentUser(null);
-      showToast("Sessão encerrada");
+      showToast("SessÃ£o encerrada");
     } catch (error) {
       showToast("Erro ao sair", "error");
     }
@@ -701,7 +714,7 @@ export default function App() {
           if (!userDoc.exists()) {
             const newUser = {
               uid: user.uid,
-              name: user.displayName || (userCanBeMaster ? 'Master' : 'Usuário'),
+              name: user.displayName || (userCanBeMaster ? 'Master' : 'UsuÃ¡rio'),
               email: user.email || '',
               role: userCanBeMaster ? 'admin' : 'user',
               isMaster: userCanBeMaster,
@@ -714,8 +727,8 @@ export default function App() {
             const currentUserData = {
               ...existingUser,
               email: user.email || existingUser.email || '',
-              name: user.displayName || existingUser.name || (userCanBeMaster ? 'Master' : 'Usuário'),
-              role: userCanBeMaster ? 'admin' : existingUser.role || 'user',
+              name: user.displayName || existingUser.name || (userCanBeMaster ? 'Master' : 'UsuÃ¡rio'),
+              role: userCanBeMaster ? 'admin' : normalizeAccessRole(existingUser.role),
               isMaster: userCanBeMaster || existingUser.isMaster || existingUser.role === 'admin',
             };
 
@@ -741,7 +754,7 @@ export default function App() {
       try {
         const result = await getRedirectResult(auth);
         if (result?.user) {
-          showToast('Login com Google concluído!');
+          showToast('Login com Google concluÃ­do!');
         }
       } catch (error) {
         console.error('Redirect login error:', error);
@@ -904,7 +917,7 @@ export default function App() {
   const addEmployee = async (employeeData: any) => {
     try {
       if (!employeeData.roleId) {
-        showToast("Por favor, selecione um cargo válido.", "error");
+        showToast("Por favor, selecione um cargo vÃ¡lido.", "error");
         return;
       }
       
@@ -965,9 +978,9 @@ export default function App() {
           role: userData.role,
           name: userData.name
         });
-        showToast("Usuário atualizado!");
+        showToast("UsuÃ¡rio atualizado!");
       } else {
-        showToast("Novos usuários devem fazer login com Google primeiro para serem registrados.", "info");
+        showToast("Novos usuÃ¡rios devem fazer login com Google primeiro para serem registrados.", "info");
       }
       setIsUserModalOpen(false);
       setEditingUser(null);
@@ -1029,7 +1042,7 @@ export default function App() {
   const deleteUser = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'users', id));
-      showToast("Usuário removido");
+      showToast("UsuÃ¡rio removido");
     } catch (e) {
       handleFirestoreError(e, OperationType.DELETE, `users/${id}`);
     }
@@ -1109,7 +1122,7 @@ export default function App() {
   const saveConfig = async (key: string, value: string, silent = false) => {
     try {
       await setDoc(doc(db, 'config', key), { value, updatedAt: serverTimestamp() });
-      if (!silent) showToast("Configuração salva!");
+      if (!silent) showToast("ConfiguraÃ§Ã£o salva!");
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `config/${key}`);
     }
@@ -1196,45 +1209,18 @@ export default function App() {
       setIsSubmittingAbsence(true);
 
       try {
-      // Send real email
-      const emailRes = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: rhEmail,
-          subject: `NOTIFICAÃ‡ÃƒO DE FALTA: ${employee.name}`,
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #e11d48;">Notificação de Falta</h2>
-              <p><strong>Colaborador:</strong> ${employee.name}</p>
-              <p><strong>Cargo:</strong> ${employee.role}</p>
-              <p><strong>Motivo:</strong> ${reason || 'Não informado'}</p>
-              <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
-            </div>
-          `
-        })
-      });
-
-      if (!emailRes.ok) {
-        const errorData = await emailRes.json();
-        console.error("Email error:", errorData.error);
-        showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
-      }
-
           const alertId = `absence_${employee.id}_${new Date().toISOString().slice(0, 10)}`;
           await setDoc(doc(db, 'alerts', alertId), {
             type: 'error',
             date: new Date().toISOString(),
-            message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
-          title: `Falta: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Notificação enviada para ${rhEmail}`,
-          employeeId: employee.id,
-        createdAt: serverTimestamp()
-      });
-      
-        showToast("Ausência registrada e RH notificado por e-mail!");
+            message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
+            title: `Falta: ${employee.name}`,
+            description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
+            employeeId: employee.id,
+            createdAt: serverTimestamp()
+          });
+
+        showToast('Ausência registrada. Será enviada no resumo semanal de segunda-feira.');
         setIsAbsenceModalOpen(false);
       } catch (e) { 
         handleFirestoreError(e, OperationType.CREATE, 'alerts');
@@ -1253,46 +1239,19 @@ export default function App() {
       setIsSubmittingDoubleShift(true);
 
     try {
-      // Send real email
-      const emailRes = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: rhEmail,
-          subject: `NOTIFICAÃ‡ÃƒO DE DOBRA: ${employee.name}`,
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #f59e0b;">Notificação de Dobra</h2>
-              <p><strong>Colaborador:</strong> ${employee.name}</p>
-              <p><strong>Data da Dobra:</strong> ${date}</p>
-              <p><strong>Setor:</strong> ${sector.name}</p>
-              <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
-            </div>
-          `
-        })
-      });
-
-      if (!emailRes.ok) {
-        const errorData = await emailRes.json();
-        console.error("Email error:", errorData.error);
-        showToast(`Alerta: O registro foi feito, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
-      }
-
           const alertId = `double_${employee.id}_${date}_${sector.id}`;
           await setDoc(doc(db, 'alerts', alertId), {
             type: 'warning',
             date: new Date().toISOString(),
-            message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-          title: `Dobra: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-          sectorId: sector.id,
-        employeeId: employee.id,
-        createdAt: serverTimestamp()
-      });
+            message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            title: `Dobra: ${employee.name}`,
+            description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            sectorId: sector.id,
+            employeeId: employee.id,
+            createdAt: serverTimestamp()
+          });
       
-        showToast("Dobra registrada e RH notificado por e-mail!");
+        showToast('Dobra registrada. Será enviada no resumo semanal de segunda-feira.');
         setIsDoubleShiftModalOpen(false);
       } catch (e) { 
         handleFirestoreError(e, OperationType.CREATE, 'alerts');
@@ -1304,7 +1263,7 @@ export default function App() {
 
   const generateEmployeeReport = () => {
     const doc = new jsPDF();
-    doc.text("Relatório de Colaboradores", 14, 15);
+    doc.text("RelatÃ³rio de Colaboradores", 14, 15);
     
     const tableData = employees.map(emp => [
       emp.name,
@@ -1319,7 +1278,7 @@ export default function App() {
     });
 
     doc.save("colaboradores.pdf");
-    showToast("Relatório de colaboradores gerado!");
+    showToast("RelatÃ³rio de colaboradores gerado!");
   };
 
   const generateShiftReport = () => {
@@ -1349,7 +1308,7 @@ export default function App() {
 
   const generateSpecialReport = () => {
     const doc = new jsPDF();
-    doc.text("Relatório de Escalas Especiais", 14, 15);
+    doc.text("RelatÃ³rio de Escalas Especiais", 14, 15);
 
     const tableData = specialSchedules.map(schedule => [
       schedule.name,
@@ -1365,7 +1324,7 @@ export default function App() {
     });
 
     doc.save("escalas_especiais.pdf");
-    showToast("Relatório de escalas especiais gerado!");
+    showToast("RelatÃ³rio de escalas especiais gerado!");
   };
 
   const requestOvertime = async (employeeId: string, date: string, sectorId: string) => {
@@ -1377,46 +1336,19 @@ export default function App() {
       setIsSubmittingOvertime(true);
 
     try {
-      // Send real email
-      const emailRes = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          to: rhEmail,
-          subject: `SOLICITAÃ‡ÃƒO DE HORA EXTRA: ${employee.name}`,
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #f59e0b;">Solicitação de Hora Extra</h2>
-              <p><strong>Colaborador:</strong> ${employee.name}</p>
-              <p><strong>Data Solicitada:</strong> ${date}</p>
-              <p><strong>Setor:</strong> ${sector.name}</p>
-              <p><strong>Data do Registro:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
-            </div>
-          `
-        })
-      });
-
-      if (!emailRes.ok) {
-        const errorData = await emailRes.json();
-        console.error("Email error:", errorData.error);
-        showToast(`Alerta: A solicitação foi feita, mas o e-mail para o RH falhou: ${errorData.error}`, "error");
-      }
-
           const alertId = `overtime_${employee.id}_${date}_${sector.id}`;
           await setDoc(doc(db, 'alerts', alertId), {
             type: 'warning',
             date: new Date().toISOString(),
-            message: `Solicitação de Hora Extra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-          title: `Solicitação de Hora Extra: ${employee.name}`,
-          description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Notificação enviada para ${rhEmail}`,
-          sectorId: sector.id,
-        employeeId: employee.id,
-        createdAt: serverTimestamp()
-      });
+            message: `Solicitação de Hora Extra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            title: `Solicitação de Hora Extra: ${employee.name}`,
+            description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            sectorId: sector.id,
+            employeeId: employee.id,
+            createdAt: serverTimestamp()
+          });
       
-        showToast("Solicitação enviada ao RH por e-mail!");
+        showToast('Solicitação enviada ao RH para o resumo semanal.');
         setIsOvertimeModalOpen(false);
       } catch (e) { 
         handleFirestoreError(e, OperationType.CREATE, 'alerts');
@@ -1515,7 +1447,7 @@ export default function App() {
           </button>
           <div className="mt-8 pt-6 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-400">
-              Sistema de Gestão de Escalas & Turnos v2.0
+              Sistema de GestÃ£o de Escalas & Turnos v2.0
             </p>
           </div>
         </motion.div>
@@ -1555,7 +1487,7 @@ export default function App() {
             </div>
             <div>
               <h1 className={cn("font-bold leading-tight", darkMode ? "text-white" : "text-slate-900")}>Escala Ipanema</h1>
-              <p className="text-xs text-slate-500">Gestão de Turnos</p>
+              <p className="text-xs text-slate-500">GestÃ£o de Turnos</p>
             </div>
           </div>
         </div>
@@ -1570,7 +1502,7 @@ export default function App() {
           />
           <SidebarItem 
             icon={Clock} 
-            label="Presença" 
+            label="PresenÃ§a" 
             active={view === 'overtime'}
             onClick={() => { setView('overtime'); setIsSidebarOpen(false); }}
             darkMode={darkMode}
@@ -1584,7 +1516,7 @@ export default function App() {
           />
           <SidebarItem 
             icon={UserMinus} 
-            label="Ausências" 
+            label="AusÃªncias" 
             badge={alerts.length.toString()} 
             active={view === 'absences'}
             onClick={() => { setView('absences'); setIsSidebarOpen(false); }}
@@ -1628,7 +1560,7 @@ export default function App() {
           />
           <SidebarItem 
             icon={FileText} 
-            label="Relatórios" 
+            label="RelatÃ³rios" 
             active={view === 'reports'}
             onClick={() => { setView('reports'); setIsSidebarOpen(false); }}
             darkMode={darkMode}
@@ -1636,7 +1568,7 @@ export default function App() {
           {currentUser?.isMaster && (
             <SidebarItem 
               icon={Shield} 
-              label="Usuários" 
+              label="UsuÃ¡rios" 
               active={view === 'users'}
               onClick={() => { setView('users'); setIsSidebarOpen(false); }}
               darkMode={darkMode}
@@ -1644,7 +1576,7 @@ export default function App() {
           )}
           <SidebarItem 
             icon={Settings} 
-            label="Configurações" 
+            label="ConfiguraÃ§Ãµes" 
             active={view === 'settings'}
             onClick={() => { setView('settings'); setIsSidebarOpen(false); }}
             darkMode={darkMode}
@@ -1658,7 +1590,7 @@ export default function App() {
             </div>
             <div className="overflow-hidden flex-1">
               <p className={cn("text-sm font-semibold truncate", darkMode ? "text-white" : "text-slate-900")}>{currentUser?.name}</p>
-              <p className="text-[10px] text-slate-500 uppercase font-bold">{currentUser?.isMaster ? "Master" : "Admin"}</p>
+              <p className="text-[10px] text-slate-500 uppercase font-bold">{getAccessRoleLabel(currentUser?.role, currentUser?.isMaster)}</p>
             </div>
             <button 
               onClick={handleLogout}
@@ -1692,16 +1624,16 @@ export default function App() {
               <h2 className="text-lg lg:text-xl font-bold">
                 {view === 'dashboard' && 'Escala Ipanema'}
                 {view === 'planner' && 'Planejador de Turnos'}
-                {view === 'employees' && 'Gestão de Colaboradores'}
-                {view === 'roles' && 'Gestão de Cargos'}
-                {view === 'sectors' && 'Gestão de Setores'}
-                {view === 'users' && 'Gestão de Usuários'}
-                {view === 'absences' && 'Gestão de Ausências'}
-                {view === 'double_shifts' && 'Gestão de Dobras'}
+                {view === 'employees' && 'GestÃ£o de Colaboradores'}
+                {view === 'roles' && 'GestÃ£o de Cargos'}
+                {view === 'sectors' && 'GestÃ£o de Setores'}
+                {view === 'users' && 'GestÃ£o de UsuÃ¡rios'}
+                {view === 'absences' && 'GestÃ£o de AusÃªncias'}
+                {view === 'double_shifts' && 'GestÃ£o de Dobras'}
                 {view === 'overtime' && 'Horas Extras'}
               </h2>
               <p className="text-xs lg:text-sm text-slate-500 hidden sm:block">
-                {view === 'dashboard' ? 'Visão geral em tempo real da força de trabalho e turnos' : 'Armazém Principal â€¢ 24 Funcionários Ativos'}
+                {view === 'dashboard' ? 'VisÃ£o geral em tempo real da forÃ§a de trabalho e turnos' : 'ArmazÃ©m Principal Ã¢â‚¬Â¢ 24 FuncionÃ¡rios Ativos'}
               </p>
             </div>
           </div>
@@ -1758,7 +1690,7 @@ export default function App() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <MetricCard 
                     icon={Users} 
-                    label="Total de Funcionários" 
+                    label="Total de FuncionÃ¡rios" 
                     value={employees.length.toString()} 
                     subValue=" ativos" 
                     trend="+2.4%" 
@@ -1769,7 +1701,7 @@ export default function App() {
                   />
                   <MetricCard 
                     icon={UserMinus} 
-                    label="Ausências Ativas" 
+                    label="AusÃªncias Ativas" 
                     value={alerts.filter(a => a.type === 'error').length.toString()} 
                     subValue=" alertas" 
                     trend="Alerta" 
@@ -1805,12 +1737,12 @@ export default function App() {
                 <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 sm:mb-8">
                     <div>
-                      <h4 className="font-bold text-lg">Presença em Tempo Real por Departamento</h4>
-                      <p className="text-sm text-slate-500">Porcentagem de presença ao vivo hoje</p>
+                      <h4 className="font-bold text-lg">PresenÃ§a em Tempo Real por Departamento</h4>
+                      <p className="text-sm text-slate-500">Porcentagem de presenÃ§a ao vivo hoje</p>
                     </div>
                     <div className="text-right">
                       <p className="text-2xl font-bold text-primary">94.6%</p>
-                      <p className="text-xs font-medium text-slate-400">Média Global</p>
+                      <p className="text-xs font-medium text-slate-400">MÃ©dia Global</p>
                     </div>
                   </div>
                   <div className="flex items-end justify-between h-48 px-4">
@@ -1847,7 +1779,7 @@ export default function App() {
                 )}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-                  <h3 className="text-xl font-bold">Gestão de Cargos</h3>
+                  <h3 className="text-xl font-bold">GestÃ£o de Cargos</h3>
                   <button 
                     onClick={() => { setEditingRole(null); setIsRoleModalOpen(true); }}
                     className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary/90 transition-all flex items-center gap-2"
@@ -1894,12 +1826,12 @@ export default function App() {
                 )}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-                  <h3 className="text-xl font-bold">Gestão de Usuários</h3>
+                  <h3 className="text-xl font-bold">GestÃ£o de UsuÃ¡rios</h3>
                   <button 
                     onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }}
                     className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-primary/90 transition-all flex items-center gap-2"
                   >
-                    <Plus size={18} /> Novo Usuário
+                    <Plus size={18} /> Novo UsuÃ¡rio
                   </button>
                 </div>
                 <div className="overflow-x-auto">
@@ -1907,8 +1839,8 @@ export default function App() {
                     <thead>
                       <tr className="text-slate-400 text-xs font-bold uppercase tracking-wider border-b border-slate-100">
                         <th className="pb-3 pl-2">Nome</th>
-                        <th className="pb-3">Nível de Acesso</th>
-                        <th className="pb-3 text-right pr-2">Ações</th>
+                        <th className="pb-3">NÃ­vel de Acesso</th>
+                        <th className="pb-3 text-right pr-2">AÃ§Ãµes</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -1923,10 +1855,10 @@ export default function App() {
                           <td className="py-4">
                             <span className={cn(
                               "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
-                              user.role === 'admin' ? "bg-purple-100 text-purple-700" : 
-                              user.role === 'manager' ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
+                              normalizeAccessRole(user.role) === 'admin' ? "bg-purple-100 text-purple-700" : 
+                              normalizeAccessRole(user.role) === 'supervisor' ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-700"
                             )}>
-                              {user.role || 'user'}
+                              {getAccessRoleLabel(user.role, user.isMaster)}
                             </span>
                           </td>
                           <td className="py-4 text-right pr-2">
@@ -1986,7 +1918,7 @@ export default function App() {
                             }
                           }}
                           className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                          title="Escolher data, mês e ano"
+                          title="Escolher data, mÃªs e ano"
                         />
                         <button className="p-2 text-slate-400 hover:text-primary transition-colors bg-slate-50 rounded-lg border border-slate-200">
                           <CalendarDays size={18} />
@@ -2017,7 +1949,7 @@ export default function App() {
                         onClick={() => setPlannerViewMode('daily')}
                         className={cn("px-4 py-1.5 text-xs font-bold rounded-md transition-all", plannerViewMode === 'daily' ? "bg-white shadow-sm" : "text-slate-500 hover:text-slate-900")}
                       >
-                        Vista Diária
+                        Vista DiÃ¡ria
                       </button>
                     </div>
                   </div>
@@ -2053,7 +1985,7 @@ export default function App() {
                           setCurrentDate(newDate);
                         }}
                         className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50"
-                        title="Próximo"
+                        title="PrÃ³ximo"
                       >
                         <ChevronRight size={18} />
                       </button>
@@ -2104,7 +2036,7 @@ export default function App() {
                   )}>
                     <thead className="sticky top-0 z-20 bg-white shadow-sm">
                       <tr>
-                        <th className="w-64 p-4 text-left text-xs font-bold uppercase text-slate-400 border-b border-r border-slate-200 sticky left-0 bg-white">Funcionário</th>
+                        <th className="w-64 p-4 text-left text-xs font-bold uppercase text-slate-400 border-b border-r border-slate-200 sticky left-0 bg-white">FuncionÃ¡rio</th>
                         {(() => {
                           const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
                           const daysToShow = plannerViewMode === 'monthly' ? daysInMonth : plannerViewMode === 'weekly' ? 7 : 1;
@@ -2203,7 +2135,7 @@ export default function App() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-bold truncate">Escalas Especiais</p>
-                              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Eventos do Mês</p>
+                              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Eventos do MÃªs</p>
                             </div>
                           </div>
                         </td>
@@ -2269,8 +2201,8 @@ export default function App() {
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs">
-                    <span className="px-2 py-1 rounded bg-slate-100 font-bold">Total de Equipe Necessária: 18</span>
-                    <span className="px-2 py-1 rounded bg-primary/10 text-primary font-bold">Atribuído: 16</span>
+                    <span className="px-2 py-1 rounded bg-slate-100 font-bold">Total de Equipe NecessÃ¡ria: 18</span>
+                    <span className="px-2 py-1 rounded bg-primary/10 text-primary font-bold">AtribuÃ­do: 16</span>
                     <span className="px-2 py-1 rounded bg-red-50 text-red-600 font-bold">Lacuna: -2</span>
                   </div>
                 </div>
@@ -2347,7 +2279,7 @@ export default function App() {
                 className="space-y-6"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="text-xl font-bold">Gestão de Ausências</h3>
+                  <h3 className="text-xl font-bold">GestÃ£o de AusÃªncias</h3>
                   <button 
                     onClick={() => setIsAbsenceModalOpen(true)}
                     className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
@@ -2380,7 +2312,7 @@ export default function App() {
                       "text-center py-12 rounded-xl border border-dashed text-slate-400",
                       darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
                     )}>
-                      Nenhuma ausência crítica registrada.
+                      Nenhuma ausÃªncia crÃ­tica registrada.
                     </div>
                   )}
                 </div>
@@ -2394,7 +2326,7 @@ export default function App() {
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div>
-                    <h3 className="text-xl font-bold">Gestão de Dobras</h3>
+                    <h3 className="text-xl font-bold">GestÃ£o de Dobras</h3>
                     <p className="text-sm text-slate-500">Turnos duplos registrados no sistema</p>
                   </div>
                   <button 
@@ -2495,7 +2427,7 @@ export default function App() {
                 )}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-                  <h3 className="text-xl font-bold">Gestão de Setores</h3>
+                  <h3 className="text-xl font-bold">GestÃ£o de Setores</h3>
                   <button 
                     onClick={() => { setEditingSector(null); setIsSectorModalOpen(true); }}
                     className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
@@ -2545,19 +2477,19 @@ export default function App() {
                     <Settings size={32} />
                   </div>
                   <div>
-                    <h3 className="text-2xl font-bold">Configurações do Sistema</h3>
-                    <p className="text-slate-500">Gerencie as preferências da sua aplicação</p>
+                    <h3 className="text-2xl font-bold">ConfiguraÃ§Ãµes do Sistema</h3>
+                    <p className="text-slate-500">Gerencie as preferÃªncias da sua aplicaÃ§Ã£o</p>
                   </div>
                 </div>
 
                 <div className="space-y-8">
                   <section>
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Preferências Gerais</h4>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">PreferÃªncias Gerais</h4>
                     <div className="space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg">
                         <div>
-                          <p className="font-semibold">Notificações por E-mail</p>
-                          <p className="text-sm text-slate-500">Receba alertas de ausências por e-mail</p>
+                          <p className="font-semibold">Resumo Semanal por E-mail</p>
+                          <p className="text-sm text-slate-500">Receba o resumo de faltas, horas extras e dobras toda segunda-feira</p>
                         </div>
                         <div 
                           onClick={() => setEmailNotifications(!emailNotifications)}
@@ -2594,10 +2526,10 @@ export default function App() {
                   </section>
 
                   <section>
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Configurações de RH</h4>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">ConfiguraÃ§Ãµes de RH</h4>
                     <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg space-y-4">
                       <div>
-                        <label className="block text-xs font-bold text-blue-800 uppercase mb-1">E-mail para Relatórios</label>
+                        <label className="block text-xs font-bold text-blue-800 uppercase mb-1">E-mail para RelatÃ³rios</label>
                         <div className="flex gap-2">
                           <input 
                             type="email"
@@ -2609,7 +2541,7 @@ export default function App() {
                           <button 
                             onClick={() => {
                               if (!rhEmail.includes('@') || !rhEmail.includes('.')) {
-                                showToast("Por favor, insira um e-mail válido.", "error");
+                                showToast("Por favor, insira um e-mail vÃ¡lido.", "error");
                                 return;
                               }
                               saveConfig('rh_email', rhEmail);
@@ -2622,7 +2554,7 @@ export default function App() {
                       </div>
 
                       <p className="text-sm text-blue-800">
-                        Os relatórios consolidados (Faltas, Horas Extras e Dobras) são enviados automaticamente para <strong>{rhEmail}</strong> todo dia 20.
+                        Os relatórios consolidados (Faltas, Horas Extras e Dobras) são enviados automaticamente para <strong>{rhEmail}</strong> toda segunda-feira, com referência à semana anterior.
                       </p>
                       
                       {/* Email Status Indicator */}
@@ -2645,11 +2577,11 @@ export default function App() {
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
                                 to: rhEmail,
-                                subject: `RELATÃ“RIO CONSOLIDADO - ${monthName.toUpperCase()}`,
+                                subject: `RELATÃƒâ€œRIO CONSOLIDADO - ${monthName.toUpperCase()}`,
                                 html: `
                                   <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                                    <h2 style="color: #2563eb;">Relatório Consolidado de RH</h2>
-                                    <p><strong>Mês de Referência:</strong> ${monthName}</p>
+                                    <h2 style="color: #2563eb;">RelatÃ³rio Consolidado de RH</h2>
+                                    <p><strong>MÃªs de ReferÃªncia:</strong> ${monthName}</p>
                                     <p><strong>Resumo de Alertas:</strong></p>
                                     <ul>
                                       <li><strong>Faltas:</strong> ${alerts.filter(a => a.type === 'error').length}</li>
@@ -2661,8 +2593,8 @@ export default function App() {
                                       <thead>
                                         <tr style="background-color: #f8fafc;">
                                           <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">Tipo</th>
-                                          <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">Título</th>
-                                          <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">Descrição</th>
+                                          <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">TÃ­tulo</th>
+                                          <th style="padding: 8px; border: 1px solid #e2e8f0; text-align: left;">DescriÃ§Ã£o</th>
                                         </tr>
                                       </thead>
                                       <tbody>
@@ -2676,7 +2608,7 @@ export default function App() {
                                       </tbody>
                                     </table>
                                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                        <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
+                        <p style="font-size: 12px; color: #666;">Este Ã© um e-mail automÃ¡tico do sistema Escala do Talho.</p>
                                   </div>
                                 `
                               })
@@ -2685,28 +2617,28 @@ export default function App() {
                             if (res.ok) {
                               const data = await res.json();
                               if (data.simulated) {
-                                showToast(`Simulação: Relatório gerado (E-mail não enviado pois a API Key não está configurada)`);
+                                showToast(`SimulaÃ§Ã£o: RelatÃ³rio gerado (E-mail nÃ£o enviado pois a API Key nÃ£o estÃ¡ configurada)`);
                               } else {
-                                showToast(`Relatório consolidado enviado com sucesso para ${rhEmail}`);
+                                showToast(`RelatÃ³rio consolidado enviado com sucesso para ${rhEmail}`);
                               }
                             } else {
                               const errorData = await res.json();
-                              showToast(`Erro ao enviar relatório: ${errorData.error}`, "error");
+                              showToast(`Erro ao enviar relatÃ³rio: ${errorData.error}`, "error");
                             }
                           } catch (error) {
                             console.error(error);
-                            showToast("Erro ao processar relatório", "error");
+                            showToast("Erro ao processar relatÃ³rio", "error");
                           }
                         }}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
                       >
-                        <Download size={18} /> Enviar Relatório Agora (E-mail)
+                        <Download size={18} /> Enviar Relatório Mensal Agora (E-mail)
                       </button>
                     </div>
                   </section>
 
                   <section>
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Ações de Sistema</h4>
+                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">AÃ§Ãµes de Sistema</h4>
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
                       <p className="text-sm text-slate-600 mb-4">
                         Importe a base da planilha para criar Setores, Cargos normalizados e Colaboradores no sistema.
@@ -2733,14 +2665,14 @@ export default function App() {
                             saveConfig('dark_mode', darkMode.toString(), true),
                             saveConfig('email_notifications', emailNotifications.toString(), true)
                           ]);
-                          showToast("Configurações salvas com sucesso!");
+                          showToast("ConfiguraÃ§Ãµes salvas com sucesso!");
                         } catch (error) {
-                          showToast("Erro ao salvar configurações", "error");
+                          showToast("Erro ao salvar configuraÃ§Ãµes", "error");
                         }
                       }}
                       className="bg-primary text-white px-8 py-2.5 rounded-lg font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
                     >
-                      Salvar Alterações
+                      Salvar AlteraÃ§Ãµes
                     </button>
                   </div>
                 </div>
@@ -2832,7 +2764,7 @@ export default function App() {
                 className="space-y-6"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="text-xl font-bold">Relatórios e Exportação</h3>
+                  <h3 className="text-xl font-bold">RelatÃ³rios e ExportaÃ§Ã£o</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
@@ -2854,7 +2786,7 @@ export default function App() {
                       <CalendarDays size={24} />
                     </div>
                     <h4 className="font-bold mb-2">Escala Mensal</h4>
-                    <p className="text-sm text-slate-500 mb-4">Exporte a escala de turnos do mês atual para todos os colaboradores.</p>
+                    <p className="text-sm text-slate-500 mb-4">Exporte a escala de turnos do mÃªs atual para todos os colaboradores.</p>
                     <button 
                       onClick={() => generateShiftReport()}
                       className="w-full py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
@@ -2868,7 +2800,7 @@ export default function App() {
                       <Zap size={24} />
                     </div>
                     <h4 className="font-bold mb-2">Escalas Especiais</h4>
-                    <p className="text-sm text-slate-500 mb-4">Relatório de eventos e escalas especiais com equipes designadas.</p>
+                    <p className="text-sm text-slate-500 mb-4">RelatÃ³rio de eventos e escalas especiais com equipes designadas.</p>
                     <button 
                       onClick={() => generateSpecialReport()}
                       className="w-full py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
@@ -2881,7 +2813,7 @@ export default function App() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400">
                 <Info size={48} className="mb-4 opacity-20" />
-                <p>Esta tela está em desenvolvimento ou não possui dados.</p>
+                <p>Esta tela estÃ¡ em desenvolvimento ou nÃ£o possui dados.</p>
                 <button onClick={() => setView('dashboard')} className="mt-4 text-primary font-bold">Voltar ao Painel</button>
               </div>
             )}
@@ -2943,7 +2875,7 @@ export default function App() {
                     setEditingEmployee(null);
                   }} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">
-                    {editingEmployee ? 'Salvar Alterações' : 'Salvar'}
+                    {editingEmployee ? 'Salvar AlteraÃ§Ãµes' : 'Salvar'}
                   </button>
                 </div>
               </form>
@@ -2996,7 +2928,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
-              <h3 className="text-xl font-bold mb-6">{editingUser ? 'Editar Usuário' : 'Novo Usuário'}</h3>
+              <h3 className="text-xl font-bold mb-6">{editingUser ? 'Editar UsuÃ¡rio' : 'Novo UsuÃ¡rio'}</h3>
               <form onSubmit={(e: any) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
@@ -3006,7 +2938,7 @@ export default function App() {
                 });
               }} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Usuário</label>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do UsuÃ¡rio</label>
                   <input name="name" defaultValue={editingUser?.name || ''} required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
                 </div>
                 {editingUser && (
@@ -3016,17 +2948,17 @@ export default function App() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nível de Acesso</label>
-                  <select name="role" defaultValue={editingUser?.role || 'user'} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">NÃ­vel de Acesso</label>
+                                    <select name="role" defaultValue={normalizeAccessRole(editingUser?.role) || 'user'} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
                     <option value="user">Usuário (Visualização)</option>
-                    <option value="manager">Gerente (Edição de Escalas)</option>
+                    <option value="supervisor">Supervisor (Edição Operacional)</option>
                     <option value="admin">Administrador (Total)</option>
                   </select>
                 </div>
                 {!editingUser && (
                   <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg">
                     <p className="text-xs text-amber-800">
-                      <strong>Nota:</strong> Novos usuários devem primeiro fazer login com Google para serem registrados no sistema. Após o login, você poderá alterar o nível de acesso deles aqui.
+                      <strong>Nota:</strong> Novos usuÃ¡rios devem primeiro fazer login com Google para serem registrados no sistema. ApÃ³s o login, vocÃª poderÃ¡ alterar o nÃ­vel de acesso deles aqui.
                     </p>
                   </div>
                 )}
@@ -3058,10 +2990,10 @@ export default function App() {
               <p className="text-sm text-slate-500 mb-6">Escolha o preenchimento para este quadrinho.</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { type: 'day', label: 'Manhã', time: '07:00', color: 'bg-blue-500 text-white' },
+                  { type: 'day', label: 'ManhÃ£', time: '07:00', color: 'bg-blue-500 text-white' },
                   { type: 'night', label: 'Tarde', time: '15:00', color: 'bg-orange-500 text-white' },
                   { type: 'off', label: 'Folga', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
-                  { type: 'vacation', label: 'Férias', time: '-', color: 'bg-amber-500 text-white' },
+                  { type: 'vacation', label: 'FÃ©rias', time: '-', color: 'bg-amber-500 text-white' },
                 ].map(option => (
                   <button
                     key={`picker-${option.type}`}
@@ -3114,9 +3046,9 @@ export default function App() {
               <h3 className="text-xl font-bold mb-6">Trocar ou Limpar Escala</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { type: 'Manhã', label: 'Manhã', time: '07:00' },
+                  { type: 'ManhÃ£', label: 'ManhÃ£', time: '07:00' },
                   { type: 'Tarde', label: 'Tarde', time: '15:00' },
-                  { type: 'vacation', label: 'Férias', time: '-' },
+                  { type: 'vacation', label: 'FÃ©rias', time: '-' },
                   { type: 'off', label: 'Folga', time: '-' },
                 ].map(s => (
                   <button
@@ -3148,7 +3080,7 @@ export default function App() {
                   Limpar Escala
                 </button>
                 <p className="mt-2 text-[11px] text-slate-400">
-                  Use esta opção quando a escala foi preenchida por engano.
+                  Use esta opÃ§Ã£o quando a escala foi preenchida por engano.
                 </p>
               </div>
             </motion.div>
@@ -3181,7 +3113,7 @@ export default function App() {
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsSectorModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">
-                    {editingSector ? 'Salvar Alterações' : 'Criar Setor'}
+                    {editingSector ? 'Salvar AlteraÃ§Ãµes' : 'Criar Setor'}
                   </button>
                 </div>
               </form>
@@ -3260,7 +3192,7 @@ export default function App() {
                     setSelectedEmployeesForSpecial([]);
                   }} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">
-                    {editingSpecialSchedule ? 'Salvar Alterações' : 'Criar Escala'}
+                    {editingSpecialSchedule ? 'Salvar AlteraÃ§Ãµes' : 'Criar Escala'}
                   </button>
                 </div>
               </form>
@@ -3300,7 +3232,7 @@ export default function App() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Motivo (Opcional)</label>
-                  <textarea name="reason" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none h-24" placeholder="Ex: Problemas de saúde, emergência familiar..." />
+                  <textarea name="reason" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none h-24" placeholder="Ex: Problemas de saÃºde, emergÃªncia familiar..." />
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={() => setIsAbsenceModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
@@ -3457,7 +3389,7 @@ export default function App() {
               </div>
               <h3 className="text-xl font-bold mb-2">Importar base da planilha?</h3>
               <p className="text-slate-500 text-sm mb-8">
-                Isso irá adicionar todos os setores, cargos e colaboradores reais ao sistema. Esta ação não pode ser desfeita facilmente.
+                Isso irÃ¡ adicionar todos os setores, cargos e colaboradores reais ao sistema. Esta aÃ§Ã£o nÃ£o pode ser desfeita facilmente.
               </p>
               <div className="flex gap-3">
                 <button 
@@ -3484,3 +3416,4 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+

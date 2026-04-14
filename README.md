@@ -58,5 +58,20 @@ Este projeto ja esta preparado para usar Firebase em producao.
 
 As credenciais do cliente Firebase sao carregadas por `firebase.ts` via variaveis de ambiente. Se alguma variavel obrigatoria faltar, a aplicacao vai falhar cedo com uma mensagem clara.
 
+## E-mail Semanal de RH
+
+Os alertas de faltas, dobras e horas extras sao consolidados e enviados automaticamente toda
+segunda-feira com base na semana anterior.
+
+Variaveis adicionais necessarias:
+
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL` quando voce usar um remetente de dominio proprio
+- `CRON_SECRET` para proteger o endpoint agendado do Vercel
+- `FIREBASE_SERVICE_ACCOUNT_JSON` ou `FIREBASE_ADMIN_PROJECT_ID` + `FIREBASE_ADMIN_CLIENT_EMAIL` +
+  `FIREBASE_ADMIN_PRIVATE_KEY`
+
+O cron esta configurado em `vercel.json` para acionar `/api/cron/weekly-rh-report`.
+
 ---
 Desenvolvido para Talho Delicatessen.

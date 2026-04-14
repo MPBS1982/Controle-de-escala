@@ -49,6 +49,16 @@ service cloud.firestore {
           isMasterEmail());
     }
 
+    function isSupervisor() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['supervisor', 'manager'];
+    }
+
+    function canEditOperationalData() {
+      return isAdmin() || isSupervisor();
+    }
+
     function isMasterEmail() {
       return isAuthenticated() &&
         request.auth.token.email == "sistemas@talhodelicatessen.com.br";
@@ -123,7 +133,7 @@ service cloud.firestore {
       return data.uid is string && data.uid == userId &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.email is string && data.email.size() < 100 &&
-             data.role in ['admin', 'manager', 'user'] &&
+             data.role in ['admin', 'supervisor', 'manager', 'user'] &&
              (!('avatar' in data) || (data.avatar is string && data.avatar.size() < 500)) &&
              (!('createdAt' in data) || data.createdAt is timestamp);
     }
@@ -134,44 +144,44 @@ service cloud.firestore {
 
     match /employees/{employeeId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidEmployee(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if canEditOperationalData() && isValidEmployee(request.resource.data);
+      allow delete: if canEditOperationalData();
     }
 
     match /sectors/{sectorId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidSector(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if canEditOperationalData() && isValidSector(request.resource.data);
+      allow delete: if canEditOperationalData();
     }
 
     match /roles/{roleId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidRole(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if canEditOperationalData() && isValidRole(request.resource.data);
+      allow delete: if canEditOperationalData();
     }
 
     match /{path=**}/shifts/{shiftId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidShift(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if canEditOperationalData() && isValidShift(request.resource.data);
+      allow delete: if canEditOperationalData();
     }
 
     match /special_schedules/{scheduleId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidSpecialSchedule(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if canEditOperationalData() && isValidSpecialSchedule(request.resource.data);
+      allow delete: if canEditOperationalData();
     }
 
     match /special_schedule_assignments/{assignmentId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidAssignment(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if canEditOperationalData() && isValidAssignment(request.resource.data);
+      allow delete: if canEditOperationalData();
     }
 
     match /alerts/{alertId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin() && isValidAlert(request.resource.data);
-      allow delete: if isAdmin();
+      allow create, update: if canEditOperationalData() && isValidAlert(request.resource.data);
+      allow delete: if canEditOperationalData();
     }
 
     match /config/{configKey} {
