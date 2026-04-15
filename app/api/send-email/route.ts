@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { getResendFromAddress } from '@/lib/resend';
 
 export async function POST(request: Request) {
   try {
@@ -22,8 +23,10 @@ export async function POST(request: Request) {
 
     console.log(`Attempting to send email to: ${to}`);
 
+    const { from } = getResendFromAddress();
+
     const { data, error } = await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL || 'Escala do Talho <onboarding@resend.dev>',
+      from,
       to: [to],
       subject: subject || 'Notificacao Escala do Talho',
       html,

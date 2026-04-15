@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { getAdminFirestore } from './firebase-admin';
+import { getResendFromAddress } from './resend';
 
 type WeeklyAlert = {
   id: string;
@@ -145,7 +146,7 @@ export async function sendWeeklyRhReport(referenceDate = new Date()): Promise<We
   const overtime = alerts.filter(isOvertimeAlert);
 
   const resendApiKey = process.env.RESEND_API_KEY;
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'Escala do Talho <onboarding@resend.dev>';
+  const { from: fromEmail } = getResendFromAddress();
 
   if (!resendApiKey) {
     throw new Error('RESEND_API_KEY is not set.');
