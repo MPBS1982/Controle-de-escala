@@ -765,6 +765,27 @@ export default function App() {
     void consumeRedirectResult();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadEmailStatus = async () => {
+      try {
+        const response = await fetch('/api/email-status', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) setIsEmailActive(Boolean(data?.active));
+      } catch {
+        if (!cancelled) setIsEmailActive(false);
+      }
+    };
+
+    void loadEmailStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Handle ChunkLoadError
   useEffect(() => {
     const handleChunkError = (e: ErrorEvent) => {
@@ -808,7 +829,6 @@ export default function App() {
           if (doc.id === 'rh_email') setRhEmail(data.value);
           if (doc.id === 'dark_mode') setDarkMode(data.value === 'true');
           if (doc.id === 'email_notifications') setEmailNotifications(data.value === 'true');
-          if (doc.id === 'email_status') setIsEmailActive(data.active);
         });
       }, (error) => handleFirestoreError(error, OperationType.LIST, 'config'));
       unsubscribers.push(configUnsub);
