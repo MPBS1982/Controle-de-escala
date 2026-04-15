@@ -1,4 +1,4 @@
-const FALLBACK_FROM = 'Escala do Talho <onboarding@resend.dev>';
+const FALLBACK_FROM = 'Escala do Talho <no-reply@talhodelicatessen.com.br>';
 
 const SIMPLE_EMAIL_RE = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
 const DISPLAY_NAME_RE = /^(.*)<([^<>]+)>$/;
