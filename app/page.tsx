@@ -39,6 +39,7 @@ import { seedConfig, seedEmployees, seedRoles, seedSectors } from '@/lib/base-co
 import Image from 'next/image';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 // Firebase Imports
 import { 
@@ -159,6 +160,29 @@ const getAccessRoleLabel = (role?: string | null, isMaster?: boolean) => {
   if (normalized === 'admin') return 'Administrador';
   if (normalized === 'user') return 'Usuário';
   return role || 'Usuário';
+};
+
+const formatReportDate = (value?: string | null) => {
+  if (!value) return '-';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleString('pt-BR', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  });
+};
+
+const getAlertEmployeeName = (alert: any, prefix: string) => {
+  const title = String(alert?.title || '');
+  const fromTitle = title.replace(new RegExp(`^${prefix}:\\s*`), '').trim();
+  return fromTitle || alert?.employeeName || 'Colaborador';
+};
+
+const getAlertSectorName = (alert: any, sectors: any[]) => {
+  if (!alert?.sectorId) return '-';
+  return sectors.find(sector => sector.id === alert.sectorId)?.name || '-';
 };
 
 const PLANNER_DATA = [
@@ -561,6 +585,10 @@ export default function App() {
     }
     return result;
   }, [employees, searchQuery, sortAlphabetical, plannerSectorFilter, roles]);
+
+  const absenceAlerts = useMemo(() => {
+    return alerts.filter(alert => alert.type === 'error');
+  }, [alerts]);
 
   const doubleShiftAlerts = useMemo(() => {
     return alerts.filter(alert => alert.type === 'warning' && String(alert.title || '').startsWith('Dobra:'));
@@ -1213,6 +1241,11 @@ export default function App() {
   };
 
   const removeAlert = async (id: string) => {
+    if (!currentUser?.isMaster) {
+      showToast("Apenas a conta master pode excluir esses registros.", "error");
+      return;
+    }
+
     try {
       await deleteDoc(doc(db, 'alerts', id));
       showToast("Alerta removido.");
@@ -1346,6 +1379,104 @@ export default function App() {
     doc.save("escalas_especiais.pdf");
     showToast("Relatório de escalas especiais gerado!");
   };
+
+  const buildSensitiveReportRows = (kind: 'absences' | 'double_shifts' | 'overtime'): Array<Record<string, string>> => {
+    const records = kind === 'absences'
+      ? absenceAlerts
+      : kind === 'double_shifts'
+        ? doubleShiftAlerts
+        : overtimeAlerts;
+
+    return records.map((alert: any): Record<string, string> => {
+      const employeeName =
+        kind === 'absences'
+          ? getAlertEmployeeName(alert, 'Falta')
+          : kind === 'double_shifts'
+            ? getAlertEmployeeName(alert, 'Dobra')
+            : getAlertEmployeeName(alert, 'Solicitação de Hora Extra');
+
+      const baseRow: Record<string, string> = {
+        'Data do registro': formatReportDate(alert.date || alert.createdAt?.toDate?.()?.toISOString?.()),
+        Colaborador: employeeName,
+        Setor: getAlertSectorName(alert, sectors),
+        'Criado em': formatReportDate(alert.createdAt?.toDate?.()?.toISOString?.()),
+      };
+
+      if (kind === 'absences') {
+        return {
+          ...baseRow,
+          Motivo: alert.description || alert.message || '-',
+        };
+      }
+
+      if (kind === 'double_shifts') {
+        return {
+          ...baseRow,
+          Motivo: alert.description || alert.message || '-',
+        };
+      }
+
+      return {
+        ...baseRow,
+        Motivo: alert.description || alert.message || '-',
+      };
+    });
+  };
+
+  const exportSensitiveReportXlsx = (
+    kind: 'absences' | 'double_shifts' | 'overtime',
+    filename: string,
+    sheetName: string,
+  ) => {
+    const rows = buildSensitiveReportRows(kind);
+    if (rows.length === 0) {
+      showToast('Não há dados para exportar.', 'info');
+      return;
+    }
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
+    XLSX.writeFile(workbook, filename);
+    showToast(`Arquivo ${filename} gerado com sucesso!`);
+  };
+
+  const exportSensitiveReportPdf = (
+    kind: 'absences' | 'double_shifts' | 'overtime',
+    title: string,
+    filename: string,
+  ) => {
+    const rows = buildSensitiveReportRows(kind);
+    if (rows.length === 0) {
+      showToast('Não há dados para exportar.', 'info');
+      return;
+    }
+
+    const doc = new jsPDF('l', 'mm', 'a4');
+    doc.setFontSize(18);
+    doc.text(title, 14, 15);
+
+    const headers = Object.keys(rows[0]);
+    autoTable(doc, {
+      head: [headers],
+      body: rows.map((row) => headers.map((header) => row[header] || '-')),
+      startY: 24,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [25, 93, 230], textColor: [255, 255, 255], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+      margin: { top: 18, right: 10, bottom: 10, left: 10 },
+    });
+
+    doc.save(filename);
+    showToast(`${title} gerado com sucesso!`);
+  };
+
+  const exportAbsencesPdf = () => exportSensitiveReportPdf('absences', 'Relatório de Faltas', 'faltas.pdf');
+  const exportAbsencesXlsx = () => exportSensitiveReportXlsx('absences', 'faltas.xlsx', 'Faltas');
+  const exportDoubleShiftsPdf = () => exportSensitiveReportPdf('double_shifts', 'Relatório de Dobras', 'dobras.pdf');
+  const exportDoubleShiftsXlsx = () => exportSensitiveReportXlsx('double_shifts', 'dobras.xlsx', 'Dobras');
+  const exportOvertimePdf = () => exportSensitiveReportPdf('overtime', 'Relatório de Horas Extras', 'horas-extras.pdf');
+  const exportOvertimeXlsx = () => exportSensitiveReportXlsx('overtime', 'horas-extras.xlsx', 'Horas Extras');
 
   const requestOvertime = async (employeeId: string, date: string, sectorId: string) => {
       const employee = employees.find(e => e.id === employeeId);
@@ -2322,9 +2453,11 @@ export default function App() {
                           <p className={cn("text-sm", darkMode ? "text-slate-400" : "text-slate-500")}>{alert.description}</p>
                         </div>
                       </div>
-                      <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
-                        <Ban size={18} />
-                      </button>
+                      {currentUser?.isMaster && (
+                        <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
+                          <Ban size={18} />
+                        </button>
+                      )}
                     </div>
                   ))}
                   {alerts.filter(a => a.type === 'error').length === 0 && (
@@ -2380,9 +2513,11 @@ export default function App() {
                           <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-yellow-100 text-yellow-700">
                             Dobra
                           </span>
-                          <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
-                            <Ban size={18} />
-                          </button>
+                          {currentUser?.isMaster && (
+                            <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
+                              <Ban size={18} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -2424,9 +2559,11 @@ export default function App() {
                           <p className="text-sm text-slate-500">{alert.description}</p>
                         </div>
                       </div>
-                      <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
-                        <Ban size={18} />
-                      </button>
+                      {currentUser?.isMaster && (
+                        <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
+                          <Ban size={18} />
+                        </button>
+                      )}
                     </div>
                   ))}
                   {overtimeAlerts.length === 0 && (
@@ -2827,6 +2964,72 @@ export default function App() {
                     >
                       Gerar PDF
                     </button>
+                  </div>
+
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-red-50 text-red-500 rounded-lg flex items-center justify-center mb-4">
+                      <UserMinus size={24} />
+                    </div>
+                    <h4 className="font-bold mb-2">Relatório de Faltas</h4>
+                    <p className="text-sm text-slate-500 mb-4">Exporte todos os registros de faltas em PDF ou XLSX.</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={exportAbsencesPdf}
+                        className="py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
+                      >
+                        PDF
+                      </button>
+                      <button 
+                        onClick={exportAbsencesXlsx}
+                        className="py-2 bg-red-500 text-white rounded-lg font-bold text-sm hover:bg-red-600 transition-colors"
+                      >
+                        XLSX
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-yellow-50 text-yellow-500 rounded-lg flex items-center justify-center mb-4">
+                      <Layers size={24} />
+                    </div>
+                    <h4 className="font-bold mb-2">Relatório de Dobras</h4>
+                    <p className="text-sm text-slate-500 mb-4">Exporte os turnos duplos registrados em PDF ou XLSX.</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={exportDoubleShiftsPdf}
+                        className="py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
+                      >
+                        PDF
+                      </button>
+                      <button 
+                        onClick={exportDoubleShiftsXlsx}
+                        className="py-2 bg-yellow-500 text-white rounded-lg font-bold text-sm hover:bg-yellow-600 transition-colors"
+                      >
+                        XLSX
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-500 rounded-lg flex items-center justify-center mb-4">
+                      <Clock size={24} />
+                    </div>
+                    <h4 className="font-bold mb-2">Relatório de Horas Extras</h4>
+                    <p className="text-sm text-slate-500 mb-4">Exporte os registros de horas extras em PDF ou XLSX.</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button 
+                        onClick={exportOvertimePdf}
+                        className="py-2 bg-slate-900 text-white rounded-lg font-bold text-sm hover:bg-slate-800 transition-colors"
+                      >
+                        PDF
+                      </button>
+                      <button 
+                        onClick={exportOvertimeXlsx}
+                        className="py-2 bg-amber-500 text-white rounded-lg font-bold text-sm hover:bg-amber-600 transition-colors"
+                      >
+                        XLSX
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>

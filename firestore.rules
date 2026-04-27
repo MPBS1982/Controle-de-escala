@@ -181,7 +181,7 @@ service cloud.firestore {
     match /alerts/{alertId} {
       allow read: if isAuthenticated();
       allow create, update: if canEditOperationalData() && isValidAlert(request.resource.data);
-      allow delete: if canEditOperationalData();
+      allow delete: if isMasterEmail();
     }
 
     match /config/{configKey} {
