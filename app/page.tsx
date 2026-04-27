@@ -1021,11 +1021,18 @@ export default function App() {
 
   const addUser = async (userData: any) => {
     try {
+      const normalizedRole = normalizeAccessRole(userData.role);
       if (editingUser) {
-        await updateDoc(doc(db, 'users', editingUser.id), {
-          role: userData.role,
-          name: userData.name
-        });
+        await setDoc(doc(db, 'users', editingUser.id), {
+          uid: editingUser.uid,
+          name: userData.name,
+          email: editingUser.email,
+          role: normalizedRole,
+          avatar: editingUser.avatar ?? null,
+          isMaster: editingUser.isMaster || isMasterEmail(editingUser.email),
+          createdAt: editingUser.createdAt || serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
         showToast("Usuário atualizado!");
       } else {
         showToast("Novos usuários devem fazer login com Google primeiro para serem registrados.", "info");
