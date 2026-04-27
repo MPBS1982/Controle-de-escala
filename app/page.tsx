@@ -2969,7 +2969,26 @@ export default function App() {
                 className="space-y-6"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-<h3 className="text-xl font-bold">Relatórios e Exportação</h3>
+                  <div>
+                    <h3 className="text-xl font-bold">Relatórios e Exportação</h3>
+                    <p className="text-sm text-slate-500">Acesse todas as saídas do sistema em um único lugar.</p>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    <div>
+                      <h4 className="font-bold">Exportação rápida</h4>
+                      <p className="text-sm text-slate-500">Relatórios operacionais e consolidados no mesmo painel.</p>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
+                      <button onClick={exportAbsencesPdf} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">Faltas PDF</button>
+                      <button onClick={exportAbsencesXlsx} className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Faltas XLSX</button>
+                      <button onClick={exportDoubleShiftsPdf} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">Dobras PDF</button>
+                      <button onClick={exportDoubleShiftsXlsx} className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-bold hover:bg-yellow-600 transition-colors">Dobras XLSX</button>
+                      <button onClick={exportOvertimePdf} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">HE PDF</button>
+                      <button onClick={exportOvertimeXlsx} className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors">HE XLSX</button>
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
