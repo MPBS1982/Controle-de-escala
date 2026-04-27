@@ -2430,13 +2430,30 @@ export default function App() {
                 className="space-y-6"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="text-xl font-bold">Gestão de Ausências</h3>
-                  <button 
-                    onClick={() => setIsAbsenceModalOpen(true)}
-                    className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                  >
-                    <Plus size={16} /> Registrar Falta
-                  </button>
+                  <div>
+                    <h3 className="text-xl font-bold">Gestão de Ausências</h3>
+                    <p className="text-sm text-slate-500">Registros permanentes de faltas no banco</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={exportAbsencesPdf}
+                      className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Download size={16} /> PDF
+                    </button>
+                    <button 
+                      onClick={exportAbsencesXlsx}
+                      className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Download size={16} /> XLSX
+                    </button>
+                    <button 
+                      onClick={() => setIsAbsenceModalOpen(true)}
+                      className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Plus size={16} /> Registrar Falta
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {alerts.filter(a => a.type === 'error').map((alert, idx) => (
@@ -2482,12 +2499,26 @@ export default function App() {
                     <h3 className="text-xl font-bold">Gestão de Dobras</h3>
                     <p className="text-sm text-slate-500">Turnos duplos registrados no sistema</p>
                   </div>
-                  <button 
-                    onClick={() => setIsDoubleShiftModalOpen(true)}
-                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                  >
-                    <Plus size={16} /> Registrar Dobra
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={exportDoubleShiftsPdf}
+                      className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Download size={16} /> PDF
+                    </button>
+                    <button 
+                      onClick={exportDoubleShiftsXlsx}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Download size={16} /> XLSX
+                    </button>
+                    <button 
+                      onClick={() => setIsDoubleShiftModalOpen(true)}
+                      className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Plus size={16} /> Registrar Dobra
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
@@ -2539,13 +2570,30 @@ export default function App() {
                 className="space-y-6"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                  <h3 className="text-xl font-bold">Horas Extras</h3>
-                  <button 
-                    onClick={() => setIsOvertimeModalOpen(true)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                  >
-                    <Plus size={16} /> Solicitar Hora Extra
-                  </button>
+                  <div>
+                    <h3 className="text-xl font-bold">Horas Extras</h3>
+                    <p className="text-sm text-slate-500">Registros consolidados e exportáveis</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={exportOvertimePdf}
+                      className="bg-slate-900 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Download size={16} /> PDF
+                    </button>
+                    <button 
+                      onClick={exportOvertimeXlsx}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Download size={16} /> XLSX
+                    </button>
+                    <button 
+                      onClick={() => setIsOvertimeModalOpen(true)}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                    >
+                      <Plus size={16} /> Solicitar Hora Extra
+                    </button>
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   {overtimeAlerts.map((alert, idx) => (
