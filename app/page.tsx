@@ -733,12 +733,20 @@ export default function App() {
   };
 
   useEffect(() => {
+    let userDocUnsub: (() => void) | null = null;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (userDocUnsub) {
+        userDocUnsub();
+        userDocUnsub = null;
+      }
+
       if (user) {
         // Check if user exists in Firestore, if not create them
         try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-            const userCanBeMaster = isMasterEmail(user.email);
+          const userRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userRef);
+          const userCanBeMaster = isMasterEmail(user.email);
+
           if (!userDoc.exists()) {
             const newUser = {
               uid: user.uid,
@@ -746,26 +754,35 @@ export default function App() {
               email: user.email || '',
               role: userCanBeMaster ? 'admin' : 'user',
               isMaster: userCanBeMaster,
-              createdAt: serverTimestamp()
+              createdAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
             };
-            await setDoc(doc(db, 'users', user.uid), newUser);
-            setCurrentUser(newUser);
-          } else {
-            const existingUser = userDoc.data();
-            const currentUserData = {
-              ...existingUser,
-              email: user.email || existingUser.email || '',
-              name: user.displayName || existingUser.name || (userCanBeMaster ? 'Master' : 'Usuário'),
-              role: userCanBeMaster ? 'admin' : normalizeAccessRole(existingUser.role),
-              isMaster: userCanBeMaster || existingUser.isMaster || existingUser.role === 'admin',
-            };
-
-            if (userCanBeMaster && (!existingUser.isMaster || existingUser.role !== 'admin')) {
-              await setDoc(doc(db, 'users', user.uid), currentUserData, { merge: true });
-            }
-
-            setCurrentUser(currentUserData);
+            await setDoc(userRef, newUser);
+          } else if (userCanBeMaster && (!userDoc.data().isMaster || userDoc.data().role !== 'admin')) {
+            await setDoc(userRef, {
+              ...userDoc.data(),
+              role: 'admin',
+              isMaster: true,
+              updatedAt: serverTimestamp()
+            }, { merge: true });
           }
+
+          const userUnsub = onSnapshot(userRef, (snapshot) => {
+            if (!snapshot.exists()) return;
+            const data = snapshot.data();
+            setCurrentUser({
+              ...data,
+              uid: user.uid,
+              email: user.email || data.email || '',
+              name: user.displayName || data.name || (userCanBeMaster ? 'Master' : 'Usuário'),
+              role: userCanBeMaster ? 'admin' : normalizeAccessRole(data.role),
+              isMaster: userCanBeMaster || data.isMaster || data.role === 'admin',
+            });
+          }, (error) => {
+            handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
+          });
+
+          userDocUnsub = userUnsub;
         } catch (error) {
           handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
         }
@@ -774,7 +791,12 @@ export default function App() {
       }
       setIsAuthReady(true);
     });
-    return () => unsubscribe();
+    return () => {
+      if (userDocUnsub) {
+        userDocUnsub();
+      }
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
