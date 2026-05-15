@@ -612,6 +612,10 @@ export default function App() {
     return currentUser?.isMaster || normalizeAccessRole(currentUser?.role) === 'admin';
   }, [currentUser?.isMaster, currentUser?.role]);
 
+  const canManageIncidentRecords = useMemo(() => {
+    return currentUser?.isMaster || normalizeAccessRole(currentUser?.role) === 'admin';
+  }, [currentUser?.isMaster, currentUser?.role]);
+
   const vacationsBySector = useMemo(() => {
     const bucket = new Map<string, any[]>();
     sectors.forEach(sector => bucket.set(sector.id, []));
@@ -1423,18 +1427,26 @@ export default function App() {
     }
   };
 
-  const registerAbsence = async (employeeId: string, reason: string) => {
+  const registerAbsence = async (employeeId: string, date: string, reason: string) => {
       const employee = employees.find(e => e.id === employeeId);
       if (!employee) return;
+      if (!canManageIncidentRecords) {
+        showToast("Você não tem permissão para lançar faltas retroativas.", "error");
+        return;
+      }
+      if (!date) {
+        showToast("Selecione a data da falta.", "error");
+        return;
+      }
       if (submissionLocks.current.absence) return;
       submissionLocks.current.absence = true;
       setIsSubmittingAbsence(true);
 
       try {
-          const alertId = `absence_${employee.id}_${new Date().toISOString().slice(0, 10)}`;
+          const alertId = `absence_${employee.id}_${date}`;
           await setDoc(doc(db, 'alerts', alertId), {
             type: 'error',
-            date: new Date().toISOString(),
+            date,
             message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
             title: `Falta: ${employee.name}`,
             description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
@@ -1456,6 +1468,14 @@ export default function App() {
       const employee = employees.find(e => e.id === employeeId);
       const sector = sectors.find(s => s.id === sectorId);
       if (!employee || !sector) return;
+      if (!canManageIncidentRecords) {
+        showToast("Você não tem permissão para lançar dobras retroativas.", "error");
+        return;
+      }
+      if (!date) {
+        showToast("Selecione a data da dobra.", "error");
+        return;
+      }
       if (submissionLocks.current.doubleShift) return;
       submissionLocks.current.doubleShift = true;
       setIsSubmittingDoubleShift(true);
@@ -1464,7 +1484,7 @@ export default function App() {
           const alertId = `double_${employee.id}_${date}_${sector.id}`;
           await setDoc(doc(db, 'alerts', alertId), {
             type: 'warning',
-            date: new Date().toISOString(),
+            date,
             message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
             title: `Dobra: ${employee.name}`,
             description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
@@ -2627,9 +2647,9 @@ export default function App() {
                       <Download size={16} /> XLSX
                     </button>
                     <button 
-                      onClick={() => setIsAbsenceModalOpen(true)}
-                      className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                    >
+                    onClick={() => canManageIncidentRecords && setIsAbsenceModalOpen(true)}
+                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                  >
                       <Plus size={16} /> Registrar Falta
                     </button>
                   </div>
@@ -2692,9 +2712,9 @@ export default function App() {
                       <Download size={16} /> XLSX
                     </button>
                     <button 
-                      onClick={() => setIsDoubleShiftModalOpen(true)}
-                      className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
-                    >
+                    onClick={() => canManageIncidentRecords && setIsDoubleShiftModalOpen(true)}
+                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                  >
                       <Plus size={16} /> Registrar Dobra
                     </button>
                   </div>
@@ -3861,7 +3881,7 @@ export default function App() {
             </motion.div>
           </div>
         )}
-        {isAbsenceModalOpen && (
+        {isAbsenceModalOpen && canManageIncidentRecords && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -3880,9 +3900,19 @@ export default function App() {
                 const formData = new FormData(e.target);
                 registerAbsence(
                   formData.get('employeeId') as string,
+                  formData.get('date') as string,
                   formData.get('reason') as string
                 );
               }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data da falta</label>
+                  <input
+                    name="date"
+                    type="date"
+                    required
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                  />
+                </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
                   <select name="employeeId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
@@ -3906,7 +3936,7 @@ export default function App() {
             </motion.div>
           </div>
         )}
-        {isDoubleShiftModalOpen && (
+        {isDoubleShiftModalOpen && canManageIncidentRecords && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
