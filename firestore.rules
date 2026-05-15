@@ -112,6 +112,16 @@ service cloud.firestore {
              (!('status' in data) || data.status == null || (data.status is string && data.status.size() < 50));
     }
 
+    function isValidVacation(data) {
+      return data.employeeId is string &&
+             data.employeeName is string && data.employeeName.size() > 0 && data.employeeName.size() < 100 &&
+             data.sectorId is string &&
+             data.sectorName is string && data.sectorName.size() > 0 && data.sectorName.size() < 100 &&
+             data.startDate is string && data.startDate.size() == 10 &&
+             data.endDate is string && data.endDate.size() == 10 &&
+             (!('notes' in data) || data.notes == null || (data.notes is string && data.notes.size() < 1000));
+    }
+
     function isValidAssignment(data) {
       return data.specialScheduleId is string && data.employeeId is string;
     }
@@ -176,6 +186,12 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create, update: if canEditOperationalData() && isValidAssignment(request.resource.data);
       allow delete: if canEditOperationalData();
+    }
+
+    match /vacations/{vacationId} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin() && isValidVacation(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /alerts/{alertId} {

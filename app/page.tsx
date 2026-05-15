@@ -73,7 +73,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 // --- Types ---
 
-  type View = 'dashboard' | 'planner' | 'employees' | 'absences' | 'double_shifts' | 'overtime' | 'sectors' | 'special_schedules' | 'settings' | 'roles' | 'users' | 'reports';
+  type View = 'dashboard' | 'planner' | 'employees' | 'absences' | 'double_shifts' | 'overtime' | 'vacations' | 'sectors' | 'special_schedules' | 'settings' | 'roles' | 'users' | 'reports';
 
 // --- Mock Data ---
 
@@ -183,6 +183,15 @@ const getAlertEmployeeName = (alert: any, prefix: string) => {
 const getAlertSectorName = (alert: any, sectors: any[]) => {
   if (!alert?.sectorId) return '-';
   return sectors.find(sector => sector.id === alert.sectorId)?.name || '-';
+};
+
+const formatVacationDate = (value?: string | null) => {
+  if (!value) return '-';
+
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleDateString('pt-BR');
 };
 
 const PLANNER_DATA = [
@@ -517,6 +526,7 @@ export default function App() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [doubleShifts, setDoubleShifts] = useState(DOUBLE_SHIFTS);
+  const [vacations, setVacations] = useState<any[]>([]);
   const [sectors, setSectors] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [appUsers, setAppUsers] = useState<any[]>([]);
@@ -597,6 +607,26 @@ export default function App() {
   const overtimeAlerts = useMemo(() => {
     return alerts.filter(alert => alert.type === 'warning' && !String(alert.title || '').startsWith('Dobra:'));
   }, [alerts]);
+
+  const canManageVacations = useMemo(() => {
+    return currentUser?.isMaster || normalizeAccessRole(currentUser?.role) === 'admin';
+  }, [currentUser?.isMaster, currentUser?.role]);
+
+  const vacationsBySector = useMemo(() => {
+    const bucket = new Map<string, any[]>();
+    sectors.forEach(sector => bucket.set(sector.id, []));
+
+    vacations
+      .slice()
+      .sort((a, b) => String(a.startDate || '').localeCompare(String(b.startDate || '')))
+      .forEach(vacation => {
+        const key = vacation.sectorId || 'sem-setor';
+        if (!bucket.has(key)) bucket.set(key, []);
+        bucket.get(key)?.push(vacation);
+      });
+
+    return bucket;
+  }, [sectors, vacations]);
 
   // Error handling for Firestore
   enum OperationType {
@@ -896,8 +926,17 @@ export default function App() {
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'alerts'));
     unsubscribers.push(alertsUnsub);
 
+    if (canManageVacations) {
+      const vacationsUnsub = onSnapshot(collection(db, 'vacations'), (snapshot) => {
+        setVacations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }, (error) => handleFirestoreError(error, OperationType.LIST, 'vacations'));
+      unsubscribers.push(vacationsUnsub);
+    } else {
+      setVacations([]);
+    }
+
     return () => unsubscribers.forEach(unsub => unsub());
-  }, [currentUser?.uid, isAuthReady]);
+  }, [currentUser?.uid, currentUser?.role, currentUser?.isMaster, isAuthReady, canManageVacations]);
 
   // Real-time listeners for Firestore (Dynamic Data - Employees & Shifts)
   useEffect(() => {
@@ -965,6 +1004,7 @@ export default function App() {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isSpecialScheduleModalOpen, setIsSpecialScheduleModalOpen] = useState(false);
+  const [isVacationModalOpen, setIsVacationModalOpen] = useState(false);
     const [isAbsenceModalOpen, setIsAbsenceModalOpen] = useState(false);
     const [isDoubleShiftModalOpen, setIsDoubleShiftModalOpen] = useState(false);
     const [isOvertimeModalOpen, setIsOvertimeModalOpen] = useState(false);
@@ -982,6 +1022,7 @@ export default function App() {
   const [editingRole, setEditingRole] = useState<any>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editingSpecialSchedule, setEditingSpecialSchedule] = useState<any>(null);
+  const [editingVacation, setEditingVacation] = useState<any>(null);
 
   // CRUD Functions
   const addEmployee = async (employeeData: any) => {
@@ -1212,6 +1253,81 @@ export default function App() {
     } catch (e) { 
       handleFirestoreError(e, OperationType.DELETE, `special_schedules/${id}`);
     }
+  };
+
+  const addVacation = async (vacationData: any) => {
+    if (!canManageVacations) {
+      showToast("Você não tem permissão para gerenciar férias.", "error");
+      return;
+    }
+
+    try {
+      const employee = employees.find(emp => emp.id === vacationData.employeeId);
+      if (!employee) {
+        showToast("Selecione um colaborador válido.", "error");
+        return;
+      }
+
+      const sector = sectors.find(item => item.id === employee.sectorId);
+      if (!sector) {
+        showToast("O colaborador precisa estar vinculado a um setor.", "error");
+        return;
+      }
+
+      const payload = {
+        employeeId: employee.id,
+        employeeName: employee.name,
+        sectorId: sector.id,
+        sectorName: sector.name,
+        startDate: vacationData.startDate,
+        endDate: vacationData.endDate,
+        notes: vacationData.notes || '',
+        updatedAt: serverTimestamp(),
+      };
+
+      if (editingVacation) {
+        await setDoc(doc(db, 'vacations', editingVacation.id), {
+          ...payload,
+          createdAt: editingVacation.createdAt || serverTimestamp(),
+        }, { merge: true });
+        showToast("Férias atualizadas!");
+      } else {
+        await addDoc(collection(db, 'vacations'), {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+        showToast("Férias registradas!");
+      }
+
+      setIsVacationModalOpen(false);
+      setEditingVacation(null);
+    } catch (e) {
+      handleFirestoreError(e, editingVacation ? OperationType.UPDATE : OperationType.CREATE, 'vacations');
+    }
+  };
+
+  const deleteVacation = async (id: string) => {
+    if (!canManageVacations) {
+      showToast("Você não tem permissão para excluir férias.", "error");
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, 'vacations', id));
+      showToast("Férias removidas.");
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, `vacations/${id}`);
+    }
+  };
+
+  const openNewVacationModal = () => {
+    setEditingVacation(null);
+    setIsVacationModalOpen(true);
+  };
+
+  const openEditVacationModal = (vacation: any) => {
+    setEditingVacation(vacation);
+    setIsVacationModalOpen(true);
   };
 
   const applyShiftLocally = (empId: string, dayIndex: number, newShift: any) => {
@@ -1697,7 +1813,7 @@ export default function App() {
           <SidebarItem 
             icon={UserMinus} 
             label="Ausências" 
-            badge={alerts.length.toString()} 
+            badge={currentUser?.isMaster ? alerts.length.toString() : undefined} 
             active={view === 'absences'}
             onClick={() => { setView('absences'); setIsSidebarOpen(false); }}
             darkMode={darkMode}
@@ -1705,7 +1821,7 @@ export default function App() {
           <SidebarItem 
             icon={Layers} 
             label="Dobras" 
-            badge={doubleShiftAlerts.length.toString()} 
+            badge={currentUser?.isMaster ? doubleShiftAlerts.length.toString() : undefined} 
             active={view === 'double_shifts'}
             onClick={() => { setView('double_shifts'); setIsSidebarOpen(false); }}
             darkMode={darkMode}
@@ -1738,6 +1854,15 @@ export default function App() {
             onClick={() => { setView('special_schedules'); setIsSidebarOpen(false); }}
             darkMode={darkMode}
           />
+          {canManageVacations && (
+            <SidebarItem 
+              icon={Umbrella} 
+              label="Férias" 
+              active={view === 'vacations'}
+              onClick={() => { setView('vacations'); setIsSidebarOpen(false); }}
+              darkMode={darkMode}
+            />
+          )}
           <SidebarItem 
             icon={FileText} 
             label="Relatórios" 
@@ -1811,6 +1936,7 @@ export default function App() {
                 {view === 'absences' && 'Gestão de Ausências'}
                 {view === 'double_shifts' && 'Gestão de Dobras'}
                 {view === 'overtime' && 'Horas Extras'}
+                {view === 'vacations' && 'Controle de Férias'}
               </h2>
               <p className="text-xs lg:text-sm text-slate-500 hidden sm:block">
   {view === 'dashboard' ? 'Visão geral em tempo real da força de trabalho e turnos' : 'Armazém Principal • 24 Funcionários Ativos'}
@@ -1830,7 +1956,7 @@ export default function App() {
             </div>
             <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg relative">
               <Bell size={20} />
-              {alerts.length > 0 && (
+              {currentUser?.isMaster && alerts.length > 0 && (
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
               )}
             </button>
@@ -2990,6 +3116,90 @@ export default function App() {
                   ))}
                 </div>
               </motion.div>
+            ) : view === 'vacations' ? (
+              <motion.div
+                key="vacations"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-6"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-bold">Controle de Férias</h3>
+                    <p className="text-sm text-slate-500">Períodos de férias organizados por setor.</p>
+                  </div>
+                  <button 
+                    onClick={openNewVacationModal}
+                    className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
+                  >
+                    <Plus size={16} /> Nova Férias
+                  </button>
+                </div>
+
+                {vacations.length === 0 ? (
+                  <div className={cn(
+                    "text-center py-12 rounded-xl border border-dashed text-slate-400",
+                    darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+                  )}>
+                    Nenhum período de férias registrado.
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {sectors.map(sector => {
+                      const sectorVacations = vacationsBySector.get(sector.id) || [];
+                      if (sectorVacations.length === 0) return null;
+
+                      return (
+                        <div key={`vac-sector-${sector.id}`} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                          <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-100">
+                            <div>
+                              <h4 className="font-bold text-slate-900">{sector.name}</h4>
+                              <p className="text-xs text-slate-500">{sectorVacations.length} período(s) agendado(s)</p>
+                            </div>
+                            <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                              <Umbrella size={20} />
+                            </div>
+                          </div>
+                          <div className="divide-y divide-slate-100">
+                            {sectorVacations.map((vacation: any) => (
+                              <div key={`vac-${vacation.id}`} className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                                <div>
+                                  <p className="font-bold text-slate-900">{vacation.employeeName}</p>
+                                  <p className="text-sm text-slate-500">
+                                    {formatVacationDate(vacation.startDate)} até {formatVacationDate(vacation.endDate)}
+                                  </p>
+                                  {vacation.notes && (
+                                    <p className="text-xs text-slate-400 mt-1">{vacation.notes}</p>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700">
+                                    Férias
+                                  </span>
+                                  <button
+                                    onClick={() => openEditVacationModal(vacation)}
+                                    className="text-slate-400 hover:text-primary"
+                                    title="Editar férias"
+                                  >
+                                    <Edit2 size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => deleteVacation(vacation.id)}
+                                    className="text-slate-400 hover:text-red-500"
+                                    title="Excluir férias"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.div>
             ) : view === 'reports' ? (
               <motion.div
                 key="reports"
@@ -3402,6 +3612,103 @@ export default function App() {
                   Use esta opção quando a escala foi preenchida por engano.
                 </p>
               </div>
+            </motion.div>
+          </div>
+        )}
+
+        {isVacationModalOpen && canManageVacations && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsVacationModalOpen(false);
+                setEditingVacation(null);
+              }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-lg p-5 sm:p-8"
+            >
+              <h3 className="text-xl font-bold mb-2">{editingVacation ? 'Editar Férias' : 'Nova Férias'}</h3>
+              <p className="text-sm text-slate-500 mb-6">Cadastre o colaborador e o período das férias. O setor é preenchido automaticamente.</p>
+              <form onSubmit={(e: any) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                addVacation({
+                  employeeId: formData.get('employeeId'),
+                  startDate: formData.get('startDate'),
+                  endDate: formData.get('endDate'),
+                  notes: formData.get('notes'),
+                });
+              }} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
+                  <select
+                    name="employeeId"
+                    defaultValue={editingVacation?.employeeId || employees[0]?.id || ''}
+                    required
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                  >
+                    <option value="">Selecione</option>
+                    {employees.map(emp => (
+                      <option key={`vac-emp-${emp.id}`} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Início</label>
+                    <input
+                      name="startDate"
+                      type="date"
+                      defaultValue={editingVacation?.startDate || ''}
+                      required
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Fim</label>
+                    <input
+                      name="endDate"
+                      type="date"
+                      defaultValue={editingVacation?.endDate || ''}
+                      required
+                      className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Observação</label>
+                  <textarea
+                    name="notes"
+                    defaultValue={editingVacation?.notes || ''}
+                    rows={3}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none resize-none"
+                    placeholder="Opcional"
+                  />
+                </div>
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-800">
+                  O setor será puxado automaticamente da ficha do colaborador.
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsVacationModalOpen(false);
+                      setEditingVacation(null);
+                    }}
+                    className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600"
+                  >
+                    Cancelar
+                  </button>
+                  <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold">
+                    {editingVacation ? 'Salvar Alterações' : 'Salvar Férias'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         )}
