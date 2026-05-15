@@ -1262,26 +1262,45 @@ export default function App() {
     }
 
     try {
-      const employee = employees.find(emp => emp.id === vacationData.employeeId);
-      if (!employee) {
-        showToast("Selecione um colaborador válido.", "error");
+      const employeeName = String(vacationData.employeeName || '').trim();
+      const sectorId = String(vacationData.sectorId || '').trim();
+      const startDate = String(vacationData.startDate || '').trim();
+      const endDate = String(vacationData.endDate || '').trim();
+      const notes = String(vacationData.notes || '').trim();
+      const employee = employees.find(emp => {
+        const name = String(emp.name || '').trim().toLowerCase();
+        return name === employeeName.toLowerCase();
+      });
+
+      if (!employeeName) {
+        showToast("Informe o nome do colaborador.", "error");
         return;
       }
 
-      const sector = sectors.find(item => item.id === employee.sectorId);
+      const sector = sectors.find(item => item.id === sectorId) || (employee ? sectors.find(item => item.id === employee.sectorId) : null);
       if (!sector) {
-        showToast("O colaborador precisa estar vinculado a um setor.", "error");
+        showToast("Selecione um setor válido.", "error");
+        return;
+      }
+
+      if (!startDate || !endDate) {
+        showToast("Informe o período completo das férias.", "error");
+        return;
+      }
+
+      if (new Date(`${startDate}T00:00:00`) > new Date(`${endDate}T23:59:59`)) {
+        showToast("A data de início precisa ser anterior à data final.", "error");
         return;
       }
 
       const payload = {
-        employeeId: employee.id,
-        employeeName: employee.name,
+        employeeId: employee?.id || null,
+        employeeName,
         sectorId: sector.id,
         sectorName: sector.name,
-        startDate: vacationData.startDate,
-        endDate: vacationData.endDate,
-        notes: vacationData.notes || '',
+        startDate,
+        endDate,
+        notes,
         updatedAt: serverTimestamp(),
       };
 
@@ -3633,12 +3652,13 @@ export default function App() {
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-lg p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-2">{editingVacation ? 'Editar Férias' : 'Nova Férias'}</h3>
-              <p className="text-sm text-slate-500 mb-6">Cadastre o colaborador e o período das férias. O setor é preenchido automaticamente.</p>
+              <p className="text-sm text-slate-500 mb-6">Cadastre o nome do colaborador, o setor e o período das férias.</p>
               <form onSubmit={(e: any) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 addVacation({
-                  employeeId: formData.get('employeeId'),
+                  employeeName: formData.get('employeeName'),
+                  sectorId: formData.get('sectorId'),
                   startDate: formData.get('startDate'),
                   endDate: formData.get('endDate'),
                   notes: formData.get('notes'),
@@ -3646,15 +3666,31 @@ export default function App() {
               }} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
+                  <input
+                    name="employeeName"
+                    list="vacation-employee-names"
+                    defaultValue={editingVacation?.employeeName || ''}
+                    required
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                    placeholder="Digite o nome do colaborador"
+                  />
+                  <datalist id="vacation-employee-names">
+                    {employees.map(emp => (
+                      <option key={`vacation-name-${emp.id}`} value={emp.name} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
                   <select
-                    name="employeeId"
-                    defaultValue={editingVacation?.employeeId || employees[0]?.id || ''}
+                    name="sectorId"
+                    defaultValue={editingVacation?.sectorId || employees.find(emp => emp.name === editingVacation?.employeeName)?.sectorId || ''}
                     required
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                   >
-                    <option value="">Selecione</option>
-                    {employees.map(emp => (
-                      <option key={`vac-emp-${emp.id}`} value={emp.id}>{emp.name}</option>
+                    <option value="">Selecione o setor</option>
+                    {sectors.map(sector => (
+                      <option key={`vac-sector-${sector.id}`} value={sector.id}>{sector.name}</option>
                     ))}
                   </select>
                 </div>
@@ -3691,7 +3727,7 @@ export default function App() {
                   />
                 </div>
                 <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-800">
-                  O setor será puxado automaticamente da ficha do colaborador.
+                  Você pode digitar o nome livremente e selecionar o setor diretamente.
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button

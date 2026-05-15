@@ -113,7 +113,7 @@ service cloud.firestore {
     }
 
     function isValidVacation(data) {
-      return data.employeeId is string &&
+      return (!('employeeId' in data) || data.employeeId == null || data.employeeId is string) &&
              data.employeeName is string && data.employeeName.size() > 0 && data.employeeName.size() < 100 &&
              data.sectorId is string &&
              data.sectorName is string && data.sectorName.size() > 0 && data.sectorName.size() < 100 &&
