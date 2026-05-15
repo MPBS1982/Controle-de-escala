@@ -615,6 +615,7 @@ export default function App() {
   const vacationsBySector = useMemo(() => {
     const bucket = new Map<string, any[]>();
     sectors.forEach(sector => bucket.set(sector.id, []));
+    bucket.set('sem-setor', []);
 
     vacations
       .slice()
@@ -1263,23 +1264,27 @@ export default function App() {
 
     try {
       const employeeName = String(vacationData.employeeName || '').trim();
-      const sectorId = String(vacationData.sectorId || '').trim();
       const startDate = String(vacationData.startDate || '').trim();
       const endDate = String(vacationData.endDate || '').trim();
       const notes = String(vacationData.notes || '').trim();
+      const normalizedEmployeeName = employeeName.toLowerCase();
       const employee = employees.find(emp => {
         const name = String(emp.name || '').trim().toLowerCase();
-        return name === employeeName.toLowerCase();
+        return name === normalizedEmployeeName;
       });
+      const employeeSector = employee
+        ? sectors.find(item => item.id === employee.sectorId)
+        : null;
+      const fallbackSector = sectors.find(item => item.id === String(vacationData.sectorId || '').trim()) || sectors[0] || null;
+      const sector = employeeSector || fallbackSector;
 
       if (!employeeName) {
         showToast("Informe o nome do colaborador.", "error");
         return;
       }
 
-      const sector = sectors.find(item => item.id === sectorId) || (employee ? sectors.find(item => item.id === employee.sectorId) : null);
       if (!sector) {
-        showToast("Selecione um setor válido.", "error");
+        showToast("Não foi possível identificar um setor para este cadastro.", "error");
         return;
       }
 
@@ -3164,23 +3169,33 @@ export default function App() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {sectors.map(sector => {
-                      const sectorVacations = vacationsBySector.get(sector.id) || [];
-                      if (sectorVacations.length === 0) return null;
+                    {[
+                      ...sectors.map(sector => ({
+                        id: sector.id,
+                        name: sector.name,
+                        vacations: vacationsBySector.get(sector.id) || [],
+                      })),
+                      {
+                        id: 'sem-setor',
+                        name: 'Sem setor',
+                        vacations: vacationsBySector.get('sem-setor') || [],
+                      },
+                    ].map(group => {
+                      if (group.vacations.length === 0) return null;
 
                       return (
-                        <div key={`vac-sector-${sector.id}`} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                        <div key={`vac-sector-${group.id}`} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                           <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-100">
                             <div>
-                              <h4 className="font-bold text-slate-900">{sector.name}</h4>
-                              <p className="text-xs text-slate-500">{sectorVacations.length} período(s) agendado(s)</p>
+                              <h4 className="font-bold text-slate-900">{group.name}</h4>
+                              <p className="text-xs text-slate-500">{group.vacations.length} período(s) agendado(s)</p>
                             </div>
                             <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
                               <Umbrella size={20} />
                             </div>
                           </div>
                           <div className="divide-y divide-slate-100">
-                            {sectorVacations.map((vacation: any) => (
+                            {group.vacations.map((vacation: any) => (
                               <div key={`vac-${vacation.id}`} className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                 <div>
                                   <p className="font-bold text-slate-900">{vacation.employeeName}</p>
@@ -3652,13 +3667,12 @@ export default function App() {
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-lg p-5 sm:p-8"
             >
               <h3 className="text-xl font-bold mb-2">{editingVacation ? 'Editar Férias' : 'Nova Férias'}</h3>
-              <p className="text-sm text-slate-500 mb-6">Cadastre o nome do colaborador, o setor e o período das férias.</p>
+              <p className="text-sm text-slate-500 mb-6">Cadastre o nome do colaborador e o período das férias. O setor é identificado automaticamente.</p>
               <form onSubmit={(e: any) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
                 addVacation({
                   employeeName: formData.get('employeeName'),
-                  sectorId: formData.get('sectorId'),
                   startDate: formData.get('startDate'),
                   endDate: formData.get('endDate'),
                   notes: formData.get('notes'),
@@ -3679,24 +3693,6 @@ export default function App() {
                       <option key={`vacation-name-${emp.id}`} value={emp.name} />
                     ))}
                   </datalist>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
-                  <select
-                    name="sectorId"
-                    defaultValue={
-                      editingVacation?.sectorId ||
-                      employees.find(emp => String(emp.name || '').trim().toLowerCase() === String(editingVacation?.employeeName || '').trim().toLowerCase())?.sectorId ||
-                      ''
-                    }
-                    required
-                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
-                  >
-                    <option value="">Selecione o setor</option>
-                    {sectors.map(sector => (
-                      <option key={`vac-sector-${sector.id}`} value={sector.id}>{sector.name}</option>
-                    ))}
-                  </select>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -3731,7 +3727,7 @@ export default function App() {
                   />
                 </div>
                 <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-800">
-                  Você pode digitar o nome livremente e selecionar o setor diretamente.
+                  Se o colaborador existir na base, o setor é preenchido automaticamente. Se não, o registro fica em Sem setor.
                 </div>
                 <div className="flex gap-3 pt-4">
                   <button
