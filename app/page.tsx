@@ -1294,7 +1294,7 @@ export default function App() {
       }
 
       const payload = {
-        employeeId: employee?.id || null,
+        employeeId: employee?.id || employeeName,
         employeeName,
         sectorId: sector.id,
         sectorName: sector.name,
@@ -3684,7 +3684,11 @@ export default function App() {
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
                   <select
                     name="sectorId"
-                    defaultValue={editingVacation?.sectorId || employees.find(emp => emp.name === editingVacation?.employeeName)?.sectorId || ''}
+                    defaultValue={
+                      editingVacation?.sectorId ||
+                      employees.find(emp => String(emp.name || '').trim().toLowerCase() === String(editingVacation?.employeeName || '').trim().toLowerCase())?.sectorId ||
+                      ''
+                    }
                     required
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                   >
