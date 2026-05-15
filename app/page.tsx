@@ -185,6 +185,18 @@ const getAlertSectorName = (alert: any, sectors: any[]) => {
   return sectors.find(sector => sector.id === alert.sectorId)?.name || '-';
 };
 
+const getAlertDateKey = (alert: any) => {
+  const rawDate = String(alert?.date || alert?.createdAt?.toDate?.()?.toISOString?.() || '');
+  return rawDate.slice(0, 10);
+};
+
+const getAlertReason = (alert: any) => {
+  if (alert?.reason) return String(alert.reason);
+  const description = String(alert?.description || '');
+  const match = description.match(/Motivo:\s*(.*?)(?:\s*\|\s*Será incluída no resumo semanal do RH)?$/i);
+  return match?.[1] || '';
+};
+
 const formatVacationDate = (value?: string | null) => {
   if (!value) return '-';
 
@@ -540,6 +552,8 @@ export default function App() {
   const [plannerSectorFilter, setPlannerSectorFilter] = useState<string>('all');
   const [isShiftPickerOpen, setIsShiftPickerOpen] = useState(false);
   const [shiftPickerTarget, setShiftPickerTarget] = useState<{ empId: string; dayIndex: number } | null>(null);
+  const [reportDateFrom, setReportDateFrom] = useState('');
+  const [reportDateTo, setReportDateTo] = useState('');
 
   const getFriendlyAuthError = (error: unknown, action: 'google' | 'email' | 'reset') => {
     const code = typeof error === 'object' && error && 'code' in error
@@ -607,6 +621,29 @@ export default function App() {
   const overtimeAlerts = useMemo(() => {
     return alerts.filter(alert => alert.type === 'warning' && !String(alert.title || '').startsWith('Dobra:'));
   }, [alerts]);
+
+  const matchesReportPeriod = (alert: any) => {
+    const dateKey = getAlertDateKey(alert);
+    if (!dateKey) return true;
+    if (reportDateFrom && dateKey < reportDateFrom) return false;
+    if (reportDateTo && dateKey > reportDateTo) return false;
+    return true;
+  };
+
+  const filteredAbsenceAlerts = useMemo(
+    () => absenceAlerts.filter(matchesReportPeriod),
+    [absenceAlerts, reportDateFrom, reportDateTo]
+  );
+
+  const filteredDoubleShiftAlerts = useMemo(
+    () => doubleShiftAlerts.filter(matchesReportPeriod),
+    [doubleShiftAlerts, reportDateFrom, reportDateTo]
+  );
+
+  const filteredOvertimeAlerts = useMemo(
+    () => overtimeAlerts.filter(matchesReportPeriod),
+    [overtimeAlerts, reportDateFrom, reportDateTo]
+  );
 
   const canManageVacations = useMemo(() => {
     return currentUser?.isMaster || normalizeAccessRole(currentUser?.role) === 'admin';
@@ -1028,6 +1065,8 @@ export default function App() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editingSpecialSchedule, setEditingSpecialSchedule] = useState<any>(null);
   const [editingVacation, setEditingVacation] = useState<any>(null);
+  const [editingAbsenceAlert, setEditingAbsenceAlert] = useState<any>(null);
+  const [editingDoubleShiftAlert, setEditingDoubleShiftAlert] = useState<any>(null);
 
   // CRUD Functions
   const addEmployee = async (employeeData: any) => {
@@ -1348,6 +1387,26 @@ export default function App() {
     }
   };
 
+  const openNewAbsenceModal = () => {
+    setEditingAbsenceAlert(null);
+    setIsAbsenceModalOpen(true);
+  };
+
+  const openEditAbsenceModal = (alert: any) => {
+    setEditingAbsenceAlert(alert);
+    setIsAbsenceModalOpen(true);
+  };
+
+  const openNewDoubleShiftModal = () => {
+    setEditingDoubleShiftAlert(null);
+    setIsDoubleShiftModalOpen(true);
+  };
+
+  const openEditDoubleShiftModal = (alert: any) => {
+    setEditingDoubleShiftAlert(alert);
+    setIsDoubleShiftModalOpen(true);
+  };
+
   const openNewVacationModal = () => {
     setEditingVacation(null);
     setIsVacationModalOpen(true);
@@ -1444,17 +1503,33 @@ export default function App() {
 
       try {
           const alertId = `absence_${employee.id}_${date}`;
-          await setDoc(doc(db, 'alerts', alertId), {
+          const alertRef = doc(db, 'alerts', alertId);
+          const existingAlert = await getDoc(alertRef);
+          if (existingAlert.exists() && editingAbsenceAlert?.id !== alertId) {
+            const shouldOverwrite = window.confirm('Já existe uma falta lançada para este colaborador nesta data. Deseja atualizar este registro?');
+            if (!shouldOverwrite) return;
+          }
+          const originalCreatedAt = editingAbsenceAlert?.createdAt || existingAlert.data()?.createdAt || serverTimestamp();
+
+          const payload = {
             type: 'error',
             date,
             message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
             title: `Falta: ${employee.name}`,
             description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
+            reason: reason || '',
             employeeId: employee.id,
-            createdAt: serverTimestamp()
-          });
+            createdAt: originalCreatedAt
+          };
 
-        showToast('Ausência registrada. Será enviada no resumo semanal de segunda-feira.');
+          await setDoc(alertRef, payload);
+
+          if (editingAbsenceAlert?.id && editingAbsenceAlert.id !== alertId) {
+            await deleteDoc(doc(db, 'alerts', editingAbsenceAlert.id));
+          }
+
+        showToast(editingAbsenceAlert ? 'Falta atualizada.' : 'Ausência registrada. Será enviada no resumo semanal de segunda-feira.');
+        setEditingAbsenceAlert(null);
         setIsAbsenceModalOpen(false);
       } catch (e) { 
         handleFirestoreError(e, OperationType.CREATE, 'alerts');
@@ -1482,7 +1557,15 @@ export default function App() {
 
     try {
           const alertId = `double_${employee.id}_${date}_${sector.id}`;
-          await setDoc(doc(db, 'alerts', alertId), {
+          const alertRef = doc(db, 'alerts', alertId);
+          const existingAlert = await getDoc(alertRef);
+          if (existingAlert.exists() && editingDoubleShiftAlert?.id !== alertId) {
+            const shouldOverwrite = window.confirm('Já existe uma dobra lançada para este colaborador nesta data. Deseja atualizar este registro?');
+            if (!shouldOverwrite) return;
+          }
+          const originalCreatedAt = editingDoubleShiftAlert?.createdAt || existingAlert.data()?.createdAt || serverTimestamp();
+
+          const payload = {
             type: 'warning',
             date,
             message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
@@ -1490,10 +1573,17 @@ export default function App() {
             description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
             sectorId: sector.id,
             employeeId: employee.id,
-            createdAt: serverTimestamp()
-          });
+            createdAt: originalCreatedAt
+          };
+
+          await setDoc(alertRef, payload);
+
+          if (editingDoubleShiftAlert?.id && editingDoubleShiftAlert.id !== alertId) {
+            await deleteDoc(doc(db, 'alerts', editingDoubleShiftAlert.id));
+          }
       
-        showToast('Dobra registrada. Será enviada no resumo semanal de segunda-feira.');
+        showToast(editingDoubleShiftAlert ? 'Dobra atualizada.' : 'Dobra registrada. Será enviada no resumo semanal de segunda-feira.');
+        setEditingDoubleShiftAlert(null);
         setIsDoubleShiftModalOpen(false);
       } catch (e) { 
         handleFirestoreError(e, OperationType.CREATE, 'alerts');
@@ -1571,10 +1661,10 @@ export default function App() {
 
   const buildSensitiveReportRows = (kind: 'absences' | 'double_shifts' | 'overtime'): Array<Record<string, string>> => {
     const records = kind === 'absences'
-      ? absenceAlerts
+      ? filteredAbsenceAlerts
       : kind === 'double_shifts'
-        ? doubleShiftAlerts
-        : overtimeAlerts;
+        ? filteredDoubleShiftAlerts
+        : filteredOvertimeAlerts;
 
     return records.map((alert: any): Record<string, string> => {
       const employeeName =
@@ -2647,7 +2737,7 @@ export default function App() {
                       <Download size={16} /> XLSX
                     </button>
                     <button 
-                    onClick={() => canManageIncidentRecords && setIsAbsenceModalOpen(true)}
+                    onClick={openNewAbsenceModal}
                     className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                   >
                       <Plus size={16} /> Registrar Falta
@@ -2669,11 +2759,18 @@ export default function App() {
                           <p className={cn("text-sm", darkMode ? "text-slate-400" : "text-slate-500")}>{alert.description}</p>
                         </div>
                       </div>
-                      {currentUser?.isMaster && (
-                        <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
-                          <Ban size={18} />
-                        </button>
-                      )}
+                      <div className="flex items-center gap-2 self-start sm:self-auto">
+                        {canManageIncidentRecords && (
+                          <button onClick={() => openEditAbsenceModal(alert)} className="text-slate-400 hover:text-primary" title="Editar falta">
+                            <Edit2 size={18} />
+                          </button>
+                        )}
+                        {currentUser?.isMaster && (
+                          <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
+                            <Ban size={18} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ))}
                   {alerts.filter(a => a.type === 'error').length === 0 && (
@@ -2712,7 +2809,7 @@ export default function App() {
                       <Download size={16} /> XLSX
                     </button>
                     <button 
-                    onClick={() => canManageIncidentRecords && setIsDoubleShiftModalOpen(true)}
+                    onClick={openNewDoubleShiftModal}
                     className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2"
                   >
                       <Plus size={16} /> Registrar Dobra
@@ -2743,6 +2840,11 @@ export default function App() {
                           <span className="px-2 py-1 text-[10px] font-bold rounded-full bg-yellow-100 text-yellow-700">
                             Dobra
                           </span>
+                          {canManageIncidentRecords && (
+                            <button onClick={() => openEditDoubleShiftModal(alert)} className="text-slate-400 hover:text-primary" title="Editar dobra">
+                              <Edit2 size={18} />
+                            </button>
+                          )}
                           {currentUser?.isMaster && (
                             <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
                               <Ban size={18} />
@@ -3266,6 +3368,43 @@ export default function App() {
                     <h3 className="text-xl font-bold">Relatórios e Exportação</h3>
                     <p className="text-sm text-slate-500">Acesse todas as saídas do sistema em um único lugar.</p>
                   </div>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
+                  <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">De</label>
+                        <input
+                          type="date"
+                          value={reportDateFrom}
+                          onChange={(e) => setReportDateFrom(e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Até</label>
+                        <input
+                          type="date"
+                          value={reportDateTo}
+                          onChange={(e) => setReportDateTo(e.target.value)}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReportDateFrom('');
+                        setReportDateTo('');
+                      }}
+                      className="px-4 py-2 rounded-lg border border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                    >
+                      Limpar filtro
+                    </button>
+                  </div>
+                  <p className="mt-3 text-xs text-slate-500">
+                    O período acima é aplicado aos relatórios de faltas, dobras e horas extras.
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -3894,7 +4033,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
-              <h3 className="text-xl font-bold mb-6">Registrar Falta</h3>
+              <h3 className="text-xl font-bold mb-6">{editingAbsenceAlert ? 'Editar Falta' : 'Registrar Falta'}</h3>
               <form onSubmit={(e: any) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
@@ -3910,12 +4049,13 @@ export default function App() {
                     name="date"
                     type="date"
                     required
+                    defaultValue={editingAbsenceAlert ? String(editingAbsenceAlert.date || '').slice(0, 10) : ''}
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
-                  <select name="employeeId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                  <select name="employeeId" required defaultValue={editingAbsenceAlert?.employeeId || ''} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
                     <option value="">Selecione um colaborador</option>
                     {employees.map(emp => (
                       <option key={`opt-absence-emp-${emp.id}`} value={emp.id}>{emp.name}</option>
@@ -3924,12 +4064,17 @@ export default function App() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Motivo (Opcional)</label>
-<textarea name="reason" className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none h-24" placeholder="Ex: Problemas de saúde, emergência familiar..." />
+                  <textarea
+                    name="reason"
+                    defaultValue={editingAbsenceAlert ? getAlertReason(editingAbsenceAlert) : ''}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none h-24"
+                    placeholder="Ex: Problemas de saúde, emergência familiar..."
+                  />
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setIsAbsenceModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
+                  <button type="button" onClick={() => { setIsAbsenceModalOpen(false); setEditingAbsenceAlert(null); }} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" disabled={isSubmittingAbsence} className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isSubmittingAbsence ? 'Registrando...' : 'Registrar Falta'}
+                    {isSubmittingAbsence ? 'Registrando...' : editingAbsenceAlert ? 'Salvar Alterações' : 'Registrar Falta'}
                   </button>
                 </div>
               </form>
@@ -3949,7 +4094,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white rounded-2xl shadow-2xl w-full max-w-[95vw] sm:max-w-md p-5 sm:p-8"
             >
-              <h3 className="text-xl font-bold mb-6">Registrar Dobra</h3>
+              <h3 className="text-xl font-bold mb-6">{editingDoubleShiftAlert ? 'Editar Dobra' : 'Registrar Dobra'}</h3>
               <form onSubmit={(e: any) => {
                 e.preventDefault();
                 const formData = new FormData(e.target);
@@ -3961,11 +4106,17 @@ export default function App() {
               }} className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Data</label>
-                  <input name="date" type="date" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none" />
+                  <input
+                    name="date"
+                    type="date"
+                    required
+                    defaultValue={editingDoubleShiftAlert ? String(editingDoubleShiftAlert.date || '').slice(0, 10) : ''}
+                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Colaborador</label>
-                  <select name="employeeId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                  <select name="employeeId" required defaultValue={editingDoubleShiftAlert?.employeeId || ''} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
                     <option value="">Selecione um colaborador</option>
                     {employees.map(emp => (
                       <option key={`opt-double-emp-${emp.id}`} value={emp.id}>{emp.name}</option>
@@ -3974,7 +4125,7 @@ export default function App() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Setor</label>
-                  <select name="sectorId" required className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
+                  <select name="sectorId" required defaultValue={editingDoubleShiftAlert?.sectorId || ''} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none">
                     <option value="">Selecione um setor</option>
                     {sectors.map(sector => (
                       <option key={`opt-double-sector-${sector.id}`} value={sector.id}>{sector.name}</option>
@@ -3982,9 +4133,9 @@ export default function App() {
                   </select>
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <button type="button" onClick={() => setIsDoubleShiftModalOpen(false)} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
+                  <button type="button" onClick={() => { setIsDoubleShiftModalOpen(false); setEditingDoubleShiftAlert(null); }} className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600">Cancelar</button>
                   <button type="submit" disabled={isSubmittingDoubleShift} className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isSubmittingDoubleShift ? 'Registrando...' : 'Registrar Dobra'}
+                    {isSubmittingDoubleShift ? 'Registrando...' : editingDoubleShiftAlert ? 'Salvar Alterações' : 'Registrar Dobra'}
                   </button>
                 </div>
               </form>
