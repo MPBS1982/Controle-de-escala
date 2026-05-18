@@ -190,6 +190,24 @@ const getAlertDateKey = (alert: any) => {
   return rawDate.slice(0, 10);
 };
 
+const getAlertCreatedAtMillis = (alert: any) => {
+  const createdAt = alert?.createdAt;
+  if (createdAt?.toMillis) return createdAt.toMillis();
+  if (typeof createdAt === 'string') {
+    const parsed = new Date(createdAt);
+    if (!Number.isNaN(parsed.getTime())) return parsed.getTime();
+  }
+
+  const fallback = alert?.date ? new Date(alert.date).getTime() : 0;
+  return Number.isNaN(fallback) ? 0 : fallback;
+};
+
+const getViewedAtMillis = (value: string) => {
+  if (!value) return 0;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+};
+
 const getAlertReason = (alert: any) => {
   if (alert?.reason) return String(alert.reason);
   const description = String(alert?.description || '');
@@ -382,6 +400,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAlphabetical, setSortAlphabetical] = useState(false);
   const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false);
+  const [absencesViewedAt, setAbsencesViewedAt] = useState('');
+  const [doubleShiftsViewedAt, setDoubleShiftsViewedAt] = useState('');
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToast({ message, type });
@@ -621,6 +641,18 @@ export default function App() {
   const overtimeAlerts = useMemo(() => {
     return alerts.filter(alert => alert.type === 'warning' && !String(alert.title || '').startsWith('Dobra:'));
   }, [alerts]);
+
+  const unreadAbsenceAlerts = useMemo(() => {
+    if (!currentUser?.isMaster) return [];
+    const viewedAtMillis = getViewedAtMillis(absencesViewedAt);
+    return absenceAlerts.filter(alert => getAlertCreatedAtMillis(alert) > viewedAtMillis);
+  }, [absenceAlerts, absencesViewedAt, currentUser?.isMaster]);
+
+  const unreadDoubleShiftAlerts = useMemo(() => {
+    if (!currentUser?.isMaster) return [];
+    const viewedAtMillis = getViewedAtMillis(doubleShiftsViewedAt);
+    return doubleShiftAlerts.filter(alert => getAlertCreatedAtMillis(alert) > viewedAtMillis);
+  }, [doubleShiftAlerts, doubleShiftsViewedAt, currentUser?.isMaster]);
 
   const matchesReportPeriod = (alert: any) => {
     const dateKey = getAlertDateKey(alert);
@@ -951,6 +983,8 @@ export default function App() {
           if (doc.id === 'rh_email') setRhEmail(data.value);
           if (doc.id === 'dark_mode') setDarkMode(data.value === 'true');
           if (doc.id === 'email_notifications') setEmailNotifications(data.value === 'true');
+          if (doc.id === 'notification_absences_viewed_at') setAbsencesViewedAt(String(data.value || ''));
+          if (doc.id === 'notification_double_shifts_viewed_at') setDoubleShiftsViewedAt(String(data.value || ''));
         });
       }, (error) => handleFirestoreError(error, OperationType.LIST, 'config'));
       unsubscribers.push(configUnsub);
@@ -1290,6 +1324,47 @@ export default function App() {
     }
   };
 
+  const markAlertNotificationsAsViewed = async (kind: 'absences' | 'double_shifts') => {
+    if (!currentUser?.isMaster) return;
+
+    const viewedAt = new Date().toISOString();
+    if (kind === 'absences') {
+      setAbsencesViewedAt(viewedAt);
+      await saveConfig('notification_absences_viewed_at', viewedAt, true);
+      return;
+    }
+
+    setDoubleShiftsViewedAt(viewedAt);
+    await saveConfig('notification_double_shifts_viewed_at', viewedAt, true);
+  };
+
+  const logAlertAudit = async (action: 'delete' | 'replace', alert: any, details?: string) => {
+    if (!currentUser?.isMaster || !alert?.id) return;
+
+    await setDoc(doc(collection(db, 'audit_logs')), {
+      entity: 'alerts',
+      action,
+      alertId: String(alert.id),
+      alertType: String(alert.type || ''),
+      alertTitle: String(alert.title || ''),
+      alertDescription: String(alert.description || alert.message || ''),
+      alertDate: String(alert.date || ''),
+      employeeId: String(alert.employeeId || ''),
+      sectorId: String(alert.sectorId || ''),
+      reason: String(alert.reason || ''),
+      details: details || '',
+      performedByUid: currentUser.uid || '',
+      performedByName: currentUser.name || '',
+      performedByEmail: currentUser.email || '',
+      createdAt: serverTimestamp()
+    });
+  };
+
+  const deleteAlertWithAudit = async (alert: any, action: 'delete' | 'replace', details?: string) => {
+    await logAlertAudit(action, alert, details);
+    await deleteDoc(doc(db, 'alerts', alert.id));
+  };
+
   const deleteSpecialSchedule = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'special_schedules', id));
@@ -1479,7 +1554,12 @@ export default function App() {
     }
 
     try {
-      await deleteDoc(doc(db, 'alerts', id));
+      const alertSnapshot = await getDoc(doc(db, 'alerts', id));
+      if (alertSnapshot.exists()) {
+        await deleteAlertWithAudit({ id, ...alertSnapshot.data() }, 'delete', 'Exclusão manual pela interface.');
+      } else {
+        await deleteDoc(doc(db, 'alerts', id));
+      }
       showToast("Alerta removido.");
     } catch (e) { 
       handleFirestoreError(e, OperationType.DELETE, `alerts/${id}`);
@@ -1525,7 +1605,7 @@ export default function App() {
           await setDoc(alertRef, payload);
 
           if (editingAbsenceAlert?.id && editingAbsenceAlert.id !== alertId) {
-            await deleteDoc(doc(db, 'alerts', editingAbsenceAlert.id));
+            await deleteAlertWithAudit(editingAbsenceAlert, 'replace', `Atualizado para ${alertId}.`);
           }
 
         showToast(editingAbsenceAlert ? 'Falta atualizada.' : 'Ausência registrada. Será enviada no resumo semanal de segunda-feira.');
@@ -1579,7 +1659,7 @@ export default function App() {
           await setDoc(alertRef, payload);
 
           if (editingDoubleShiftAlert?.id && editingDoubleShiftAlert.id !== alertId) {
-            await deleteDoc(doc(db, 'alerts', editingDoubleShiftAlert.id));
+            await deleteAlertWithAudit(editingDoubleShiftAlert, 'replace', `Atualizado para ${alertId}.`);
           }
       
         showToast(editingDoubleShiftAlert ? 'Dobra atualizada.' : 'Dobra registrada. Será enviada no resumo semanal de segunda-feira.');
@@ -1667,7 +1747,25 @@ export default function App() {
         : filteredOvertimeAlerts;
 
     return [...records]
-      .sort((left, right) => getAlertDateKey(left).localeCompare(getAlertDateKey(right)))
+      .sort((left, right) => {
+        const dateCompare = getAlertDateKey(left).localeCompare(getAlertDateKey(right));
+        if (dateCompare !== 0) return dateCompare;
+
+        const leftName =
+          kind === 'absences'
+            ? getAlertEmployeeName(left, 'Falta')
+            : kind === 'double_shifts'
+              ? getAlertEmployeeName(left, 'Dobra')
+              : getAlertEmployeeName(left, 'Solicitação de Hora Extra');
+        const rightName =
+          kind === 'absences'
+            ? getAlertEmployeeName(right, 'Falta')
+            : kind === 'double_shifts'
+              ? getAlertEmployeeName(right, 'Dobra')
+              : getAlertEmployeeName(right, 'Solicitação de Hora Extra');
+
+        return leftName.localeCompare(rightName);
+      })
       .map((alert: any): Record<string, string> => {
         const employeeName =
           kind === 'absences'
@@ -1929,17 +2027,25 @@ export default function App() {
           <SidebarItem 
             icon={UserMinus} 
             label="Ausências" 
-            badge={currentUser?.isMaster ? alerts.length.toString() : undefined} 
+            badge={currentUser?.isMaster && unreadAbsenceAlerts.length > 0 ? unreadAbsenceAlerts.length.toString() : undefined} 
             active={view === 'absences'}
-            onClick={() => { setView('absences'); setIsSidebarOpen(false); }}
+            onClick={async () => {
+              await markAlertNotificationsAsViewed('absences');
+              setView('absences');
+              setIsSidebarOpen(false);
+            }}
             darkMode={darkMode}
           />
           <SidebarItem 
             icon={Layers} 
             label="Dobras" 
-            badge={currentUser?.isMaster ? doubleShiftAlerts.length.toString() : undefined} 
+            badge={currentUser?.isMaster && unreadDoubleShiftAlerts.length > 0 ? unreadDoubleShiftAlerts.length.toString() : undefined} 
             active={view === 'double_shifts'}
-            onClick={() => { setView('double_shifts'); setIsSidebarOpen(false); }}
+            onClick={async () => {
+              await markAlertNotificationsAsViewed('double_shifts');
+              setView('double_shifts');
+              setIsSidebarOpen(false);
+            }}
             darkMode={darkMode}
           />
           <SidebarItem 
