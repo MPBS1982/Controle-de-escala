@@ -3487,7 +3487,7 @@ export default function App() {
                         <div key={`vac-sector-${group.id}`} className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                           <div className="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 border-b border-slate-100">
                             <div>
-                              <h4 className="font-bold text-slate-900">{group.name}</h4>
+                              <h4 className="font-bold text-red-600">{group.name}</h4>
                               <p className="text-xs text-slate-500">{group.vacations.length} período(s) agendado(s)</p>
                             </div>
                             <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -3498,7 +3498,7 @@ export default function App() {
                             {group.vacations.map((vacation: any) => (
                               <div key={`vac-${vacation.id}`} className="px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                                 <div>
-                                  <p className="font-bold text-slate-900">{vacation.employeeName}</p>
+                                  <p className="font-bold text-black">{vacation.employeeName}</p>
                                   <p className="text-sm text-slate-500">
                                     {formatVacationDate(vacation.startDate)} até {formatVacationDate(vacation.endDate)}
                                   </p>
