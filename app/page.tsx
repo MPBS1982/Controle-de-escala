@@ -428,6 +428,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAlphabetical, setSortAlphabetical] = useState(false);
   const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false);
+  const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const [absencesViewedAt, setAbsencesViewedAt] = useState('');
   const [doubleShiftsViewedAt, setDoubleShiftsViewedAt] = useState('');
 
@@ -688,6 +689,24 @@ export default function App() {
     const viewedAtMillis = getViewedAtMillis(doubleShiftsViewedAt);
     return doubleShiftAlerts.filter(alert => getAlertCreatedAtMillis(alert) > viewedAtMillis);
   }, [doubleShiftAlerts, doubleShiftsViewedAt, currentUser?.isMaster]);
+
+  const notificationFeed = useMemo(() => {
+    if (!currentUser?.isMaster) return [];
+
+    const normalizeNotification = (alert: any, kind: 'absences' | 'double_shifts') => ({
+      alert,
+      kind,
+      title: kind === 'absences' ? (alert?.title || 'Falta') : (alert?.title || 'Dobra'),
+      detail: kind === 'absences'
+        ? (getAlertReason(alert) || 'Sem motivo')
+        : (alert?.description || alert?.message || 'Sem detalhes'),
+    });
+
+    return [
+      ...unreadAbsenceAlerts.map(alert => normalizeNotification(alert, 'absences')),
+      ...unreadDoubleShiftAlerts.map(alert => normalizeNotification(alert, 'double_shifts')),
+    ].sort((left, right) => getAlertCreatedAtMillis(right.alert) - getAlertCreatedAtMillis(left.alert));
+  }, [currentUser?.isMaster, unreadAbsenceAlerts, unreadDoubleShiftAlerts]);
 
   const matchesReportPeriod = (alert: any) => {
     const dateKey = getAlertDateKey(alert);
@@ -1371,6 +1390,22 @@ export default function App() {
 
     setDoubleShiftsViewedAt(viewedAt);
     await saveConfig('notification_double_shifts_viewed_at', viewedAt, true);
+  };
+
+  const handleBellClick = async () => {
+    if (!currentUser?.isMaster) {
+      showToast('As notificações em aberto ficam disponíveis para a conta master.', 'info');
+      return;
+    }
+
+    if (!isNotificationMenuOpen) {
+      await Promise.all([
+        markAlertNotificationsAsViewed('absences'),
+        markAlertNotificationsAsViewed('double_shifts'),
+      ]);
+    }
+
+    setIsNotificationMenuOpen(prev => !prev);
   };
 
   const logAlertAudit = async (action: 'delete' | 'replace', alert: any, details?: string) => {
@@ -2266,12 +2301,68 @@ export default function App() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <button className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg relative">
-              <Bell size={20} />
-              {currentUser?.isMaster && alerts.length > 0 && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={handleBellClick}
+                className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg relative"
+                title="Ver notificações em aberto"
+              >
+                <Bell size={20} />
+                {currentUser?.isMaster && notificationFeed.length > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                )}
+              </button>
+              {isNotificationMenuOpen && currentUser?.isMaster && (
+                <div className="absolute right-0 top-full mt-3 w-[min(92vw,26rem)] rounded-2xl border border-slate-200 bg-white shadow-2xl z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">Notificações em aberto</p>
+                      <p className="text-xs text-slate-500">{notificationFeed.length} item(ns)</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsNotificationMenuOpen(false)}
+                      className="text-xs font-bold text-slate-500 hover:text-slate-900"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                  <div className="max-h-[24rem] overflow-y-auto">
+                    {notificationFeed.length === 0 ? (
+                      <div className="p-4 text-sm text-slate-500">Nenhuma notificação em aberto.</div>
+                    ) : (
+                      notificationFeed.map((item, index) => (
+                        <button
+                          key={`notification-${item.kind}-${item.alert.id ?? index}`}
+                          type="button"
+                          onClick={() => {
+                            setView(item.kind === 'absences' ? 'absences' : 'double_shifts');
+                            setIsNotificationMenuOpen(false);
+                            setIsSidebarOpen(false);
+                          }}
+                          className="w-full text-left px-4 py-3 border-b border-slate-100 hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-slate-900 truncate">{item.title}</p>
+                              <p className="text-xs text-slate-500 truncate">{item.detail}</p>
+                            </div>
+                            <span className={cn(
+                              "shrink-0 px-2 py-1 rounded-full text-[10px] font-bold uppercase",
+                              item.kind === 'absences' ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"
+                            )}>
+                              {item.kind === 'absences' ? 'Falta' : 'Dobra'}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-400">{formatReportDate(item.alert.date || item.alert.createdAt?.toDate?.()?.toISOString?.())}</p>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
             <button 
               onClick={() => setIsEmployeeModalOpen(true)}
               className="flex items-center gap-2 bg-primary text-white px-3 lg:px-4 py-2 rounded-lg font-medium text-sm hover:bg-primary/90 transition-colors"
