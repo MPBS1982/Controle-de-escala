@@ -1668,9 +1668,20 @@ export default function App() {
 
     return [...records]
       .sort((left, right) => getAlertDateKey(left).localeCompare(getAlertDateKey(right)))
-      .map((alert: any): Record<string, string> => ({
-        Motivo: getAlertReason(alert) || alert.reason || 'Não informado',
-      }));
+      .map((alert: any): Record<string, string> => {
+        const employeeName =
+          kind === 'absences'
+            ? getAlertEmployeeName(alert, 'Falta')
+            : kind === 'double_shifts'
+              ? getAlertEmployeeName(alert, 'Dobra')
+              : getAlertEmployeeName(alert, 'Solicitação de Hora Extra');
+
+        return {
+          Data: formatReportDate(alert.date || alert.createdAt?.toDate?.()?.toISOString?.()),
+          Colaborador: employeeName,
+          Setor: getAlertSectorName(alert, sectors),
+        };
+      });
   };
 
   const exportSensitiveReportXlsx = (
