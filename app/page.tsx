@@ -193,7 +193,7 @@ const getAlertDateKey = (alert: any) => {
 const getAlertReason = (alert: any) => {
   if (alert?.reason) return String(alert.reason);
   const description = String(alert?.description || '');
-  const match = description.match(/Motivo:\s*(.*?)(?:\s*\|\s*Será incluída no resumo semanal do RH)?$/i);
+  const match = description.match(/Motivo:\s*(.*)$/i);
   return match?.[1] || '';
 };
 
@@ -1514,9 +1514,9 @@ export default function App() {
           const payload = {
             type: 'error',
             date,
-            message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
+            message: `Falta: ${employee.name} | Motivo: ${reason || 'Não informado'}`,
             title: `Falta: ${employee.name}`,
-            description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'} | Será incluída no resumo semanal do RH`,
+            description: `Colaborador: ${employee.name} | Motivo: ${reason || 'Não informado'}`,
             reason: reason || '',
             employeeId: employee.id,
             createdAt: originalCreatedAt
@@ -1568,9 +1568,9 @@ export default function App() {
           const payload = {
             type: 'warning',
             date,
-            message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            message: `Dobra: ${employee.name} | Data: ${date} | Setor: ${sector.name}`,
             title: `Dobra: ${employee.name}`,
-            description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name}`,
             sectorId: sector.id,
             employeeId: employee.id,
             createdAt: originalCreatedAt
@@ -1666,40 +1666,11 @@ export default function App() {
         ? filteredDoubleShiftAlerts
         : filteredOvertimeAlerts;
 
-    return records.map((alert: any): Record<string, string> => {
-      const employeeName =
-        kind === 'absences'
-          ? getAlertEmployeeName(alert, 'Falta')
-          : kind === 'double_shifts'
-            ? getAlertEmployeeName(alert, 'Dobra')
-            : getAlertEmployeeName(alert, 'Solicitação de Hora Extra');
-
-      const baseRow: Record<string, string> = {
-        'Data do registro': formatReportDate(alert.date || alert.createdAt?.toDate?.()?.toISOString?.()),
-        Colaborador: employeeName,
-        Setor: getAlertSectorName(alert, sectors),
-        'Criado em': formatReportDate(alert.createdAt?.toDate?.()?.toISOString?.()),
-      };
-
-      if (kind === 'absences') {
-        return {
-          ...baseRow,
-          Motivo: alert.description || alert.message || '-',
-        };
-      }
-
-      if (kind === 'double_shifts') {
-        return {
-          ...baseRow,
-          Motivo: alert.description || alert.message || '-',
-        };
-      }
-
-      return {
-        ...baseRow,
-        Motivo: alert.description || alert.message || '-',
-      };
-    });
+    return [...records]
+      .sort((left, right) => getAlertDateKey(left).localeCompare(getAlertDateKey(right)))
+      .map((alert: any): Record<string, string> => ({
+        Motivo: getAlertReason(alert) || alert.reason || 'Não informado',
+      }));
   };
 
   const exportSensitiveReportXlsx = (
@@ -1770,9 +1741,9 @@ export default function App() {
           await setDoc(doc(db, 'alerts', alertId), {
             type: 'warning',
             date: new Date().toISOString(),
-            message: `Solicitação de Hora Extra: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            message: `Solicitação de Hora Extra: ${employee.name} | Data: ${date} | Setor: ${sector.name}`,
             title: `Solicitação de Hora Extra: ${employee.name}`,
-            description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name} | Será incluída no resumo semanal do RH`,
+            description: `Colaborador: ${employee.name} | Data: ${date} | Setor: ${sector.name}`,
             sectorId: sector.id,
             employeeId: employee.id,
             createdAt: serverTimestamp()

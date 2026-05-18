@@ -169,7 +169,6 @@ export async function sendWeeklyRhReport(referenceDate = new Date()): Promise<We
       ${renderSection('Dobras', doubleShifts, '#d97706')}
       ${renderSection('Horas Extras', overtime, '#ca8a04')}
       <hr style="border: 0; border-top: 1px solid #eee; margin: 24px 0;" />
-      <p style="font-size: 12px; color: #666;">Este é um e-mail automático do sistema Escala do Talho.</p>
     </div>
   `;
 
