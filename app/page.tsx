@@ -1854,21 +1854,7 @@ export default function App() {
       .sort((left, right) => {
         const dateCompare = getAlertDateKey(left).localeCompare(getAlertDateKey(right));
         if (dateCompare !== 0) return dateCompare;
-
-        const leftName =
-          kind === 'absences'
-            ? getAlertEmployeeName(left, 'Falta')
-            : kind === 'double_shifts'
-              ? getAlertEmployeeName(left, 'Dobra')
-              : getAlertEmployeeName(left, 'Solicitação de Hora Extra');
-        const rightName =
-          kind === 'absences'
-            ? getAlertEmployeeName(right, 'Falta')
-            : kind === 'double_shifts'
-              ? getAlertEmployeeName(right, 'Dobra')
-              : getAlertEmployeeName(right, 'Solicitação de Hora Extra');
-
-        return leftName.localeCompare(rightName);
+        return getAlertCreatedAtMillis(left) - getAlertCreatedAtMillis(right);
       })
       .map((alert: any): Record<string, string> => {
         const employeeName =
