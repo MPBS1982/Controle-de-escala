@@ -236,8 +236,8 @@ const PLANNER_DATA = [
       { day: 3, type: 'day', time: '08:00', overtime: true },
       { day: 4, type: 'empty' },
       { day: 5, type: '12x36', time: '08:00' },
-      { day: 6, type: 'off' },
-      { day: 7, type: 'off' },
+      { day: 6, type: 'off_taken' },
+      { day: 7, type: 'off_taken' },
       { day: 8, type: 'day', time: '08:00' },
       { day: 9, type: 'vacation' },
       { day: 10, type: 'vacation' },
@@ -254,7 +254,7 @@ const PLANNER_DATA = [
       { day: 3, type: 'night', time: '22:00' },
       { day: 4, type: 'night', time: '22:00' },
       { day: 5, type: 'empty' },
-      { day: 6, type: 'off', label: 'Folga' },
+      { day: 6, type: 'off_taken', label: 'Folga Tirada' },
       { day: 7, type: 'empty' },
       { day: 8, type: 'empty' },
       { day: 9, type: 'empty' },
@@ -327,25 +327,43 @@ const MetricCard = ({ icon: Icon, label, value, subValue, trend, trendColor, ico
 );
 
 const SHIFT_PRESETS = [
-  { type: 'day', label: 'Turno Manhã', time: '07:00', color: 'bg-blue-500 text-white' },
-  { type: 'night', label: 'Turno Tarde', time: '15:00', color: 'bg-orange-500 text-white' },
+  { type: 'day', label: 'Manhã', time: '07:00', color: 'bg-blue-500 text-white' },
+  { type: 'night', label: 'Tarde', time: '15:00', color: 'bg-orange-500 text-white' },
   { type: 'vacation', label: 'Férias', time: '-', color: 'bg-amber-500 text-white' },
-  { type: 'off', label: 'Folga', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
+  { type: 'absence', label: 'Falta', time: '-', color: 'bg-rose-500 text-white' },
+  { type: 'off_worked', label: 'Folga Trabalhada', time: '-', color: 'bg-emerald-500 text-white' },
+  { type: 'off_taken', label: 'Folga Tirada', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
 ] as const;
 
+const normalizeShiftType = (type: any) => {
+  if (type === 'day' || type === 'Manhã') return 'day';
+  if (type === 'night' || type === 'Tarde') return 'night';
+  if (type === 'vacation' || type === 'Férias') return 'vacation';
+  if (type === 'absence' || type === 'Falta') return 'absence';
+  if (type === 'off_worked' || type === 'Folga Trabalhada') return 'off_worked';
+  if (type === 'off_taken' || type === 'Folga Tirada' || type === 'off' || type === 'Folga') return 'off_taken';
+  return type;
+};
+
+const SHIFT_LABELS: Record<string, string> = {
+  day: 'Manhã',
+  night: 'Tarde',
+  vacation: 'Férias',
+  absence: 'Falta',
+  off_worked: 'Folga Trabalhada',
+  off_taken: 'Folga Tirada',
+};
+
 const ShiftBadge = ({ type, time, overtime }: any) => {
-    const normalizedType = type === 'day' || type === 'Manhã' ? 'day' : type === 'night' || type === 'Tarde' ? 'night' : type;
-    const labelMap: Record<string, string> = {
-    day: 'Manhã',
-    night: 'Tarde',
-    vacation: 'Férias',
-    off: 'Folga',
-  };
-  const styles: any = {
+  const normalizedType = normalizeShiftType(type);
+  const labelMap: Record<string, string> = SHIFT_LABELS;
+  const styles: Record<string, string> = {
     day: "bg-blue-500 text-white",
     night: "bg-orange-500 text-white",
     vacation: "bg-amber-500 text-white",
-    off: "bg-red-500/10 text-red-600 border border-red-100",
+    absence: "bg-rose-500 text-white",
+    off_worked: "bg-emerald-500 text-white",
+    off_taken: "bg-red-500/10 text-red-600 border border-red-100",
     empty: "border-2 border-dashed border-slate-200 hover:bg-slate-50"
   };
 
@@ -357,11 +375,20 @@ const ShiftBadge = ({ type, time, overtime }: any) => {
     );
   }
 
-  if (normalizedType === 'off') {
+  if (normalizedType === 'off_taken') {
     return (
-      <div className={cn("h-10 rounded text-[10px] p-1.5 font-bold flex items-center gap-1", styles.off)}>
+      <div className={cn("h-10 rounded text-[10px] p-1.5 font-bold flex items-center gap-1", styles.off_taken)}>
         <Ban size={12} />
-        <span>Folga</span>
+        <span>Folga Tirada</span>
+      </div>
+    );
+  }
+
+  if (normalizedType === 'absence') {
+    return (
+      <div className={cn("h-10 rounded text-[10px] p-1.5 font-bold flex items-center gap-1", styles.absence)}>
+        <UserMinus size={12} />
+        <span>Falta</span>
       </div>
     );
   }
@@ -373,6 +400,7 @@ const ShiftBadge = ({ type, time, overtime }: any) => {
       <span>{labelMap[normalizedType] || normalizedType}</span>
       {overtime && <Zap size={10} className="absolute bottom-1 right-1 fill-current" />}
       {normalizedType === 'vacation' && <Umbrella size={12} className="absolute bottom-1 right-1" />}
+      {normalizedType === 'off_worked' && <Users size={12} className="absolute bottom-1 right-1" />}
     </div>
   );
 };
@@ -426,19 +454,21 @@ export default function App() {
     
     const body = filteredAndSortedEmployees
       .map(emp => {
-        const row = [emp.name];
-        emp.shifts.slice(0, daysToShow).forEach((shift: any) => {
-          let typeLabel = '';
-          switch(shift.type) {
-            case 'day': typeLabel = 'D'; break;
-            case 'night': typeLabel = 'N'; break;
-            case '12x36': typeLabel = '12'; break;
-            case 'vacation': typeLabel = 'F'; break;
-            case 'off': typeLabel = 'O'; break;
-            default: typeLabel = '-';
-          }
-          row.push(typeLabel);
-        });
+      const row = [emp.name];
+      emp.shifts.slice(0, daysToShow).forEach((shift: any) => {
+        let typeLabel = '';
+        switch(normalizeShiftType(shift.type)) {
+          case 'day': typeLabel = 'D'; break;
+          case 'night': typeLabel = 'N'; break;
+          case '12x36': typeLabel = '12'; break;
+          case 'vacation': typeLabel = 'F'; break;
+          case 'absence': typeLabel = '!'; break;
+          case 'off_worked': typeLabel = 'FT'; break;
+          case 'off_taken': typeLabel = 'FTi'; break;
+          default: typeLabel = '-';
+        }
+        row.push(typeLabel);
+      });
         return row;
       });
 
@@ -512,12 +542,14 @@ export default function App() {
       let typeLabel = '';
       let timeLabel = shift.time || '-';
       
-      switch(shift.type) {
+      switch(normalizeShiftType(shift.type)) {
         case 'day': typeLabel = 'Manhã'; break;
-        case 'night': typeLabel = 'Noite'; break;
+        case 'night': typeLabel = 'Tarde'; break;
         case '12x36': typeLabel = '12x36'; break;
         case 'vacation': typeLabel = 'Férias'; timeLabel = '-'; break;
-        case 'off': typeLabel = 'Folga'; timeLabel = '-'; break;
+        case 'absence': typeLabel = 'Falta'; timeLabel = '-'; break;
+        case 'off_worked': typeLabel = 'Folga Trabalhada'; timeLabel = '-'; break;
+        case 'off_taken': typeLabel = 'Folga Tirada'; timeLabel = '-'; break;
         case 'empty': typeLabel = '-'; timeLabel = '-'; break;
         default: typeLabel = shift.type;
       }
@@ -540,11 +572,14 @@ export default function App() {
       alternateRowStyles: { fillColor: [245, 247, 250] },
       didParseCell: (data) => {
         if (data.section === 'body') {
-          if (data.row.cells[2].raw === 'Folga') {
+          if (data.row.cells[2].raw === 'Folga Tirada') {
             data.cell.styles.textColor = [239, 68, 68];
           }
           if (data.row.cells[2].raw === 'Férias') {
             data.cell.styles.textColor = [245, 158, 11];
+          }
+          if (data.row.cells[2].raw === 'Falta') {
+            data.cell.styles.textColor = [190, 18, 60];
           }
         }
       }
@@ -1374,6 +1409,13 @@ export default function App() {
     }
   };
 
+  const createAuditLogEntry = (payload: Record<string, any>) => {
+    return setDoc(doc(collection(db, 'audit_logs')), {
+      ...payload,
+      createdAt: serverTimestamp()
+    });
+  };
+
   const addVacation = async (vacationData: any) => {
     if (!canManageVacations) {
       showToast("Você não tem permissão para gerenciar férias.", "error");
@@ -1519,28 +1561,90 @@ export default function App() {
       const month = currentDate.getMonth() + 1;
       const year = currentDate.getFullYear();
       const shiftId = `${year}-${month}-${day}`;
-      
       const shiftRef = doc(db, `employees/${empId}/shifts`, shiftId);
-      if (newShift.type === 'empty') {
+      const employee = employees.find(emp => emp.id === empId);
+      const currentShift = employee?.shifts?.[dayIndex];
+      const normalizedType = normalizeShiftType(newShift.type);
+      const currentShiftType = normalizeShiftType(currentShift?.type);
+      const batch = writeBatch(db);
+      const shiftLogRef = doc(collection(db, 'audit_logs'));
+
+      if (normalizedType === 'empty') {
+        batch.delete(shiftRef);
+        batch.set(shiftLogRef, {
+          entity: 'shifts',
+          action: 'delete',
+          employeeId: empId,
+          employeeName: employee?.name || '',
+          day,
+          month,
+          year,
+          previousType: currentShiftType || '',
+          nextType: 'empty',
+          details: 'Escala removida pela interface.',
+          performedByUid: currentUser?.uid || '',
+          performedByName: currentUser?.name || '',
+          performedByEmail: currentUser?.email || '',
+          updatedAt: serverTimestamp()
+        });
+        if (currentShiftType === 'absence') {
+          batch.delete(doc(db, 'alerts', `absence_${empId}_${String(year)}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`));
+        }
         applyShiftLocally(empId, dayIndex, newShift);
-        await deleteDoc(shiftRef);
+        await batch.commit();
         showToast("Escala removida.");
         return;
       }
 
-      applyShiftLocally(empId, dayIndex, newShift);
-
-        await setDoc(shiftRef, {
-          employeeId: empId,
-          day,
-          month,
-          year,
-        type: newShift.type,
+      batch.set(shiftRef, {
+        employeeId: empId,
+        day,
+        month,
+        year,
+        type: normalizedType,
         time: newShift.time,
         overtime: !!newShift.overtime,
         updatedAt: serverTimestamp()
       });
-      
+
+      batch.set(shiftLogRef, {
+        entity: 'shifts',
+        action: currentShiftType ? 'update' : 'create',
+        employeeId: empId,
+        employeeName: employee?.name || '',
+        day,
+        month,
+        year,
+        previousType: currentShiftType || '',
+        nextType: normalizedType,
+        details: `Alteração de escala para ${SHIFT_LABELS[normalizedType] || normalizedType}.`,
+        performedByUid: currentUser?.uid || '',
+        performedByName: currentUser?.name || '',
+        performedByEmail: currentUser?.email || '',
+        updatedAt: serverTimestamp()
+      });
+
+      const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const absenceAlertRef = doc(db, 'alerts', `absence_${empId}_${dateString}`);
+      if (normalizedType === 'absence') {
+        batch.set(absenceAlertRef, {
+          type: 'error',
+          date: dateString,
+          message: `Falta: ${employee?.name || 'Colaborador'} | Motivo: Lançada pela escala`,
+          title: `Falta: ${employee?.name || 'Colaborador'}`,
+          description: `Colaborador: ${employee?.name || 'Colaborador'} | Motivo: Lançada pela escala`,
+          reason: 'Lançada pela escala',
+          employeeId: empId,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } else if (currentShiftType === 'absence') {
+        batch.delete(absenceAlertRef);
+      }
+
+      applyShiftLocally(empId, dayIndex, { type: normalizedType, time: newShift.time, overtime: !!newShift.overtime });
+      await batch.commit();
+
       showToast("Escala atualizada!");
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `employees/${empId}/shifts`);
@@ -3802,8 +3906,10 @@ export default function App() {
                 {[
                   { type: 'day', label: 'Manhã', time: '07:00', color: 'bg-blue-500 text-white' },
                   { type: 'night', label: 'Tarde', time: '15:00', color: 'bg-orange-500 text-white' },
-                  { type: 'off', label: 'Folga', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
                   { type: 'vacation', label: 'Férias', time: '-', color: 'bg-amber-500 text-white' },
+                  { type: 'absence', label: 'Falta', time: '-', color: 'bg-rose-500 text-white' },
+                  { type: 'off_worked', label: 'Folga Trabalhada', time: '-', color: 'bg-emerald-500 text-white' },
+                  { type: 'off_taken', label: 'Folga Tirada', time: '-', color: 'bg-red-500/10 text-red-600 border border-red-100' },
                 ].map(option => (
                   <button
                     key={`picker-${option.type}`}
@@ -3856,10 +3962,12 @@ export default function App() {
               <h3 className="text-xl font-bold mb-6">Trocar ou Limpar Escala</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { type: 'Manhã', label: 'Manhã', time: '07:00' },
-                  { type: 'Tarde', label: 'Tarde', time: '15:00' },
+                  { type: 'day', label: 'Manhã', time: '07:00' },
+                  { type: 'night', label: 'Tarde', time: '15:00' },
                   { type: 'vacation', label: 'Férias', time: '-' },
-                  { type: 'off', label: 'Folga', time: '-' },
+                  { type: 'absence', label: 'Falta', time: '-' },
+                  { type: 'off_worked', label: 'Folga Trabalhada', time: '-' },
+                  { type: 'off_taken', label: 'Folga Tirada', time: '-' },
                 ].map(s => (
                   <button
                     type="button"

@@ -137,21 +137,28 @@ service cloud.firestore {
     }
 
     function isValidAuditLog(data) {
-      return data.entity is string && data.entity == 'alerts' &&
-             data.action in ['delete', 'replace'] &&
-             data.alertId is string &&
-             data.alertTitle is string &&
-             data.alertDescription is string &&
-             data.alertDate is string &&
+      return data.entity in ['alerts', 'shifts'] &&
+             data.action in ['create', 'update', 'delete', 'replace'] &&
+             (!('alertId' in data) || (data.alertId is string)) &&
              (!('alertType' in data) || (data.alertType is string)) &&
+             (!('alertTitle' in data) || (data.alertTitle is string)) &&
+             (!('alertDescription' in data) || (data.alertDescription is string)) &&
+             (!('alertDate' in data) || (data.alertDate is string)) &&
              (!('employeeId' in data) || (data.employeeId is string)) &&
+             (!('employeeName' in data) || (data.employeeName is string)) &&
              (!('sectorId' in data) || (data.sectorId is string)) &&
              (!('reason' in data) || (data.reason is string)) &&
              (!('details' in data) || (data.details is string)) &&
+             (!('previousType' in data) || (data.previousType is string)) &&
+             (!('nextType' in data) || (data.nextType is string)) &&
+             (!('day' in data) || (data.day is int)) &&
+             (!('month' in data) || (data.month is int)) &&
+             (!('year' in data) || (data.year is int)) &&
              (!('performedByUid' in data) || (data.performedByUid is string)) &&
              (!('performedByName' in data) || (data.performedByName is string)) &&
              (!('performedByEmail' in data) || (data.performedByEmail is string)) &&
-             (!('createdAt' in data) || data.createdAt is timestamp);
+             (!('createdAt' in data) || data.createdAt is timestamp) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
     function isValidConfig(data) {
@@ -220,7 +227,7 @@ service cloud.firestore {
     }
 
     match /audit_logs/{logId} {
-      allow read, create: if isMasterEmail() && isValidAuditLog(request.resource.data);
+      allow read, create: if (canEditOperationalData() || isMasterEmail()) && isValidAuditLog(request.resource.data);
       allow update, delete: if false;
     }
 
