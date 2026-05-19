@@ -617,6 +617,16 @@ export default function App() {
   const [shiftPickerTarget, setShiftPickerTarget] = useState<{ empId: string; dayIndex: number } | null>(null);
   const [reportDateFrom, setReportDateFrom] = useState('');
   const [reportDateTo, setReportDateTo] = useState('');
+  const [reportRowsCache, setReportRowsCache] = useState<{
+    absences: Array<Record<string, string>>;
+    double_shifts: Array<Record<string, string>>;
+    overtime: Array<Record<string, string>>;
+  }>({
+    absences: [],
+    double_shifts: [],
+    overtime: [],
+  });
+  const [isPreparingReports, setIsPreparingReports] = useState(false);
 
   const getFriendlyAuthError = (error: unknown, action: 'google' | 'email' | 'reset') => {
     const code = typeof error === 'object' && error && 'code' in error
@@ -2043,12 +2053,39 @@ export default function App() {
       });
   };
 
+  const refreshReportsCache = async () => {
+    setIsPreparingReports(true);
+    try {
+      const [absences, doubleShifts, overtime] = await Promise.all([
+        buildSensitiveReportRows('absences'),
+        buildSensitiveReportRows('double_shifts'),
+        buildSensitiveReportRows('overtime'),
+      ]);
+      setReportRowsCache({
+        absences,
+        double_shifts: doubleShifts,
+        overtime,
+      });
+    } catch (error) {
+      console.error('Failed to prepare reports cache:', error);
+      showToast('Não foi possível preparar os relatórios no momento.', 'error');
+    } finally {
+      setIsPreparingReports(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAuthReady || !currentUser) return;
+    if (view !== 'reports' && view !== 'absences' && view !== 'double_shifts' && view !== 'overtime') return;
+    void refreshReportsCache();
+  }, [view, reportDateFrom, reportDateTo, isAuthReady, currentUser]);
+
   const exportSensitiveReportXlsx = async (
     kind: 'absences' | 'double_shifts' | 'overtime',
     filename: string,
     sheetName: string,
   ) => {
-    const rows = await buildSensitiveReportRows(kind);
+    const rows = reportRowsCache[kind].length > 0 ? reportRowsCache[kind] : await buildSensitiveReportRows(kind);
     if (rows.length === 0) {
       showToast('Não há dados para exportar.', 'info');
       return;
@@ -2067,7 +2104,7 @@ export default function App() {
     title: string,
     filename: string,
   ) => {
-    const rows = await buildSensitiveReportRows(kind);
+    const rows = reportRowsCache[kind].length > 0 ? reportRowsCache[kind] : await buildSensitiveReportRows(kind);
     if (rows.length === 0) {
       showToast('Não há dados para exportar.', 'info');
       return;
@@ -2092,12 +2129,12 @@ export default function App() {
     showToast(`${title} gerado com sucesso!`);
   };
 
-  const exportAbsencesPdf = () => void exportSensitiveReportPdf('absences', 'Relatório de Faltas', 'faltas.pdf');
-  const exportAbsencesXlsx = () => void exportSensitiveReportXlsx('absences', 'faltas.xlsx', 'Faltas');
-  const exportDoubleShiftsPdf = () => void exportSensitiveReportPdf('double_shifts', 'Relatório de Dobras e Folgas Trabalhadas', 'dobras.pdf');
-  const exportDoubleShiftsXlsx = () => void exportSensitiveReportXlsx('double_shifts', 'dobras.xlsx', 'Dobras');
-  const exportOvertimePdf = () => void exportSensitiveReportPdf('overtime', 'Relatório de Horas Extras', 'horas-extras.pdf');
-  const exportOvertimeXlsx = () => void exportSensitiveReportXlsx('overtime', 'horas-extras.xlsx', 'Horas Extras');
+  const exportAbsencesPdf = async () => exportSensitiveReportPdf('absences', 'Relatório de Faltas', 'faltas.pdf');
+  const exportAbsencesXlsx = async () => exportSensitiveReportXlsx('absences', 'faltas.xlsx', 'Faltas');
+  const exportDoubleShiftsPdf = async () => exportSensitiveReportPdf('double_shifts', 'Relatório de Dobras e Folgas Trabalhadas', 'dobras.pdf');
+  const exportDoubleShiftsXlsx = async () => exportSensitiveReportXlsx('double_shifts', 'dobras.xlsx', 'Dobras');
+  const exportOvertimePdf = async () => exportSensitiveReportPdf('overtime', 'Relatório de Horas Extras', 'horas-extras.pdf');
+  const exportOvertimeXlsx = async () => exportSensitiveReportXlsx('overtime', 'horas-extras.xlsx', 'Horas Extras');
 
   const requestOvertime = async (employeeId: string, date: string, sectorId: string) => {
       const employee = employees.find(e => e.id === employeeId);
