@@ -1917,80 +1917,82 @@ export default function App() {
 
   const buildSensitiveReportRows = async (kind: 'absences' | 'double_shifts' | 'overtime'): Promise<Array<Record<string, string>>> => {
     if (kind === 'double_shifts') {
-      const [shiftSnapshot, employeeSnapshot] = await Promise.all([
+      const [shiftResult, employeeResult, auditResult] = await Promise.allSettled([
         getDocs(collectionGroup(db, 'shifts')),
         getDocs(collection(db, 'employees')),
+        getDocs(collection(db, 'audit_logs')),
       ]);
 
-      const employeeLookup = new Map(
-        employeeSnapshot.docs.map(employeeDoc => {
+      const employeeLookup = new Map<string, { name: string; sectorId: string }>();
+      if (employeeResult.status === 'fulfilled') {
+        employeeResult.value.docs.forEach(employeeDoc => {
           const data = employeeDoc.data() as any;
-          return [
-            employeeDoc.id,
-            {
-              name: String(data?.name || 'Colaborador'),
-              sectorId: String(data?.sectorId || ''),
-            },
-          ] as const;
-        }),
-      );
+          employeeLookup.set(employeeDoc.id, {
+            name: String(data?.name || 'Colaborador'),
+            sectorId: String(data?.sectorId || ''),
+          });
+        });
+      }
 
-      const shiftRows = shiftSnapshot.docs.map(docSnap => {
-        const shift = docSnap.data() as any;
-        const normalizedType = normalizeShiftType(shift?.type);
-        if (normalizedType !== 'off_worked') return null;
-        const employeeId = String(shift?.employeeId || docSnap.ref.parent.parent?.id || '');
-        const employee = employeeLookup.get(employeeId);
-        const day = Number(shift?.day || 0);
-        const month = Number(shift?.month || 0);
-        const year = Number(shift?.year || 0);
-        const dateKey = getShiftDateKey({ day, month, year });
-        if (!dateKey) return null;
-        const shiftCreatedAtMillis =
-          Number(shift?.updatedAt?.toDate?.()?.getTime?.() || shift?.createdAt?.toDate?.()?.getTime?.() || 0);
+      const shiftRows = shiftResult.status === 'fulfilled'
+        ? shiftResult.value.docs.map(docSnap => {
+            const shift = docSnap.data() as any;
+            const normalizedType = normalizeShiftType(shift?.type);
+            if (normalizedType !== 'off_worked') return null;
+            const employeeId = String(shift?.employeeId || docSnap.ref.parent.parent?.id || '');
+            const employee = employeeLookup.get(employeeId);
+            const day = Number(shift?.day || 0);
+            const month = Number(shift?.month || 0);
+            const year = Number(shift?.year || 0);
+            const dateKey = getShiftDateKey({ day, month, year });
+            if (!dateKey) return null;
+            const shiftCreatedAtMillis =
+              Number(shift?.updatedAt?.toDate?.()?.getTime?.() || shift?.createdAt?.toDate?.()?.getTime?.() || 0);
 
-        return {
-          key: `${dateKey}|${employeeId}|Folga Trabalhada`,
-          dateKey,
-          createdAtMillis: shiftCreatedAtMillis || new Date(`${dateKey}T12:00:00`).getTime(),
-          row: {
-            Data: formatReportDate(dateKey),
-            Colaborador: employee?.name || 'Colaborador',
-            Setor: getAlertSectorName({ sectorId: employee?.sectorId }, sectors),
-            Tipo: 'Folga Trabalhada',
-          },
-        };
-      }).filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
+            return {
+              key: `${dateKey}|${employeeId}|Folga Trabalhada`,
+              dateKey,
+              createdAtMillis: shiftCreatedAtMillis || new Date(`${dateKey}T12:00:00`).getTime(),
+              row: {
+                Data: formatReportDate(dateKey),
+                Colaborador: employee?.name || 'Colaborador',
+                Setor: getAlertSectorName({ sectorId: employee?.sectorId }, sectors),
+                Tipo: 'Folga Trabalhada',
+              },
+            };
+          }).filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>
+        : [];
 
-      const auditSnapshot = await getDocs(collection(db, 'audit_logs'));
-      const auditRows = auditSnapshot.docs
-        .map(docSnap => {
-          const log = docSnap.data() as any;
-          if (String(log?.entity || '') !== 'shifts') return null;
-          const normalizedType = normalizeShiftType(log?.nextType);
-          if (normalizedType !== 'off_worked') return null;
+      const auditRows = auditResult.status === 'fulfilled'
+        ? auditResult.value.docs
+            .map(docSnap => {
+              const log = docSnap.data() as any;
+              if (String(log?.entity || '') !== 'shifts') return null;
+              const normalizedType = normalizeShiftType(log?.nextType);
+              if (normalizedType !== 'off_worked') return null;
 
-          const employeeId = String(log?.employeeId || '');
-          const employee = employeeLookup.get(employeeId);
-          const day = Number(log?.day || 0);
-          const month = Number(log?.month || 0);
-          const year = Number(log?.year || 0);
-          const dateKey = getShiftDateKey({ day, month, year });
-          if (!dateKey) return null;
+              const employeeId = String(log?.employeeId || '');
+              const employee = employeeLookup.get(employeeId);
+              const day = Number(log?.day || 0);
+              const month = Number(log?.month || 0);
+              const year = Number(log?.year || 0);
+              const dateKey = getShiftDateKey({ day, month, year });
+              if (!dateKey) return null;
 
-          return {
-            key: `audit|${dateKey}|${employeeId}|Folga Trabalhada`,
-            dateKey,
-            createdAtMillis: getAlertCreatedAtMillis(log) || new Date(`${dateKey}T12:00:00`).getTime(),
-            row: {
-              Data: formatReportDate(dateKey),
-              Colaborador: employee?.name || String(log?.employeeName || 'Colaborador'),
-              Setor: getAlertSectorName({ sectorId: employee?.sectorId }, sectors),
-              Tipo: 'Folga Trabalhada',
-            },
-          };
-        })
-        .filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
+              return {
+                key: `audit|${dateKey}|${employeeId}|Folga Trabalhada`,
+                dateKey,
+                createdAtMillis: getAlertCreatedAtMillis(log) || new Date(`${dateKey}T12:00:00`).getTime(),
+                row: {
+                  Data: formatReportDate(dateKey),
+                  Colaborador: employee?.name || String(log?.employeeName || 'Colaborador'),
+                  Setor: getAlertSectorName({ sectorId: employee?.sectorId }, sectors),
+                  Tipo: 'Folga Trabalhada',
+                },
+              };
+            })
+            .filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>
+        : [];
 
       const alertRows = filteredDoubleShiftAlerts.map((alert: any) => {
         const title = String(alert.title || '');
