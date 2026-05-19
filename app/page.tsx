@@ -2058,19 +2058,29 @@ export default function App() {
   const refreshReportsCache = async () => {
     setIsPreparingReports(true);
     try {
-      const [absences, doubleShifts, overtime] = await Promise.all([
+      const [absencesResult, doubleShiftsResult, overtimeResult] = await Promise.allSettled([
         buildSensitiveReportRows('absences'),
         buildSensitiveReportRows('double_shifts'),
         buildSensitiveReportRows('overtime'),
       ]);
       setReportRowsCache({
-        absences,
-        double_shifts: doubleShifts,
-        overtime,
+        absences: absencesResult.status === 'fulfilled' ? absencesResult.value : [],
+        double_shifts: doubleShiftsResult.status === 'fulfilled' ? doubleShiftsResult.value : [],
+        overtime: overtimeResult.status === 'fulfilled' ? overtimeResult.value : [],
       });
-    } catch (error) {
-      console.error('Failed to prepare reports cache:', error);
-      showToast('Não foi possível preparar os relatórios no momento.', 'error');
+      const failedKinds = [
+        absencesResult.status === 'rejected' ? 'faltas' : null,
+        doubleShiftsResult.status === 'rejected' ? 'dobras/folgas' : null,
+        overtimeResult.status === 'rejected' ? 'horas extras' : null,
+      ].filter(Boolean);
+      if (failedKinds.length > 0) {
+        console.error('Failed to prepare some report caches:', {
+          absencesResult,
+          doubleShiftsResult,
+          overtimeResult,
+        });
+        showToast(`Alguns relatórios não puderam ser preparados: ${failedKinds.join(', ')}.`, 'error');
+      }
     } finally {
       setIsPreparingReports(false);
     }
