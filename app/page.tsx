@@ -4151,11 +4151,17 @@ export default function App() {
                     type="button"
                     onClick={async () => {
                       if (!shiftPickerTarget) return;
-                      const saved = await updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
-                      if (!saved) return;
-                      applyShiftLocally(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
+                      const target = shiftPickerTarget;
+                      const previousShift =
+                        employees.find(emp => emp.id === target.empId)?.shifts?.[target.dayIndex] || { type: 'empty' };
+                      applyShiftLocally(target.empId, target.dayIndex, option);
                       setIsShiftPickerOpen(false);
                       setShiftPickerTarget(null);
+                      const saved = await updateShift(target.empId, target.dayIndex, option);
+                      if (!saved) {
+                        applyShiftLocally(target.empId, target.dayIndex, previousShift);
+                        showToast('Não foi possível salvar a escala selecionada.', 'error');
+                      }
                     }}
                     className={cn(
                       "p-4 border rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left",
@@ -4210,11 +4216,17 @@ export default function App() {
                     key={`shift-type-${s.type}`}
                     onClick={async () => {
                       if (!editingShift) return;
-                      const saved = await updateShift(editingShift.empId, editingShift.dayIndex, s);
-                      if (!saved) return;
-                      applyShiftLocally(editingShift.empId, editingShift.dayIndex, s);
+                      const target = editingShift;
+                      const previousShift =
+                        employees.find(emp => emp.id === target.empId)?.shifts?.[target.dayIndex] || { type: 'empty' };
+                      applyShiftLocally(target.empId, target.dayIndex, s);
                       setIsShiftModalOpen(false);
                       setEditingShift(null);
+                      const saved = await updateShift(target.empId, target.dayIndex, s);
+                      if (!saved) {
+                        applyShiftLocally(target.empId, target.dayIndex, previousShift);
+                        showToast('Não foi possível salvar a escala selecionada.', 'error');
+                      }
                     }}
                     className="p-4 border border-slate-100 rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left"
                   >
@@ -4228,11 +4240,17 @@ export default function App() {
                     type="button"
                     onClick={async () => {
                     if (!editingShift) return;
-                    const saved = await updateShift(editingShift.empId, editingShift.dayIndex, { type: 'empty' });
-                    if (!saved) return;
-                    applyShiftLocally(editingShift.empId, editingShift.dayIndex, { type: 'empty' });
+                    const target = editingShift;
+                    const previousShift =
+                      employees.find(emp => emp.id === target.empId)?.shifts?.[target.dayIndex] || { type: 'empty' };
+                    applyShiftLocally(target.empId, target.dayIndex, { type: 'empty' });
                     setIsShiftModalOpen(false);
                     setEditingShift(null);
+                    const saved = await updateShift(target.empId, target.dayIndex, { type: 'empty' });
+                    if (!saved) {
+                      applyShiftLocally(target.empId, target.dayIndex, previousShift);
+                      showToast('Não foi possível limpar a escala.', 'error');
+                    }
                   }}
                   className="w-full p-4 rounded-xl border border-red-100 bg-red-50 text-red-700 font-bold hover:bg-red-100 transition-colors"
                 >
