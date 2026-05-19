@@ -1952,6 +1952,36 @@ export default function App() {
         };
       }).filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
 
+      const auditSnapshot = await getDocs(collection(db, 'audit_logs'));
+      const auditRows = auditSnapshot.docs
+        .map(docSnap => {
+          const log = docSnap.data() as any;
+          if (String(log?.entity || '') !== 'shifts') return null;
+          const normalizedType = normalizeShiftType(log?.nextType);
+          if (normalizedType !== 'off_worked') return null;
+
+          const employeeId = String(log?.employeeId || '');
+          const employee = employeeLookup.get(employeeId);
+          const day = Number(log?.day || 0);
+          const month = Number(log?.month || 0);
+          const year = Number(log?.year || 0);
+          const dateKey = getShiftDateKey({ day, month, year });
+          if (!dateKey) return null;
+
+          return {
+            key: `audit|${dateKey}|${employeeId}|Folga Trabalhada`,
+            dateKey,
+            createdAtMillis: getAlertCreatedAtMillis(log) || new Date(`${dateKey}T12:00:00`).getTime(),
+            row: {
+              Data: formatReportDate(dateKey),
+              Colaborador: employee?.name || String(log?.employeeName || 'Colaborador'),
+              Setor: getAlertSectorName({ sectorId: employee?.sectorId }, sectors),
+              Tipo: 'Folga Trabalhada',
+            },
+          };
+        })
+        .filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
+
       const alertRows = filteredDoubleShiftAlerts.map((alert: any) => {
         const title = String(alert.title || '');
         const isWorkedOff = title.startsWith('Folga Trabalhada:');
@@ -1971,7 +2001,7 @@ export default function App() {
         };
       });
 
-      const mergedRows = [...shiftRows, ...alertRows];
+      const mergedRows = [...shiftRows, ...auditRows, ...alertRows];
       const uniqueRows = mergedRows.reduce((acc, item) => {
         if (!acc.has(item.key)) acc.set(item.key, item);
         return acc;
