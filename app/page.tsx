@@ -1908,7 +1908,7 @@ export default function App() {
   const buildSensitiveReportRows = async (kind: 'absences' | 'double_shifts' | 'overtime'): Promise<Array<Record<string, string>>> => {
     if (kind === 'double_shifts') {
       const [shiftSnapshot, employeeSnapshot] = await Promise.all([
-        getDocs(query(collectionGroup(db, 'shifts'), where('type', '==', 'off_worked'))),
+        getDocs(collectionGroup(db, 'shifts')),
         getDocs(collection(db, 'employees')),
       ]);
 
@@ -1927,6 +1927,8 @@ export default function App() {
 
       const shiftRows = shiftSnapshot.docs.map(docSnap => {
         const shift = docSnap.data() as any;
+        const normalizedType = normalizeShiftType(shift?.type);
+        if (normalizedType !== 'off_worked') return null;
         const employeeId = String(shift?.employeeId || docSnap.ref.parent.parent?.id || '');
         const employee = employeeLookup.get(employeeId);
         const day = Number(shift?.day || 0);
