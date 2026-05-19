@@ -163,11 +163,22 @@ const getAccessRoleLabel = (role?: string | null, isMaster?: boolean) => {
   return role || 'Usuário';
 };
 
+const parseLocalDate = (value?: string | null) => {
+  if (!value) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T12:00:00`);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
 const formatReportDate = (value?: string | null) => {
   if (!value) return '-';
 
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
+  const parsed = parseLocalDate(value);
+  if (!parsed) return value;
 
   return parsed.toLocaleString('pt-BR', {
     dateStyle: 'short',
@@ -188,7 +199,13 @@ const getAlertSectorName = (alert: any, sectors: any[]) => {
 
 const getAlertDateKey = (alert: any) => {
   const rawDate = String(alert?.date || alert?.createdAt?.toDate?.()?.toISOString?.() || '');
-  return rawDate.slice(0, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return rawDate;
+  const parsed = parseLocalDate(rawDate);
+  if (!parsed) return '';
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const normalizeText = (value?: string | null) => (value || '').toLowerCase();
@@ -228,8 +245,8 @@ const getAlertReason = (alert: any) => {
 const formatVacationDate = (value?: string | null) => {
   if (!value) return '-';
 
-  const parsed = new Date(`${value}T12:00:00`);
-  if (Number.isNaN(parsed.getTime())) return value;
+  const parsed = parseLocalDate(value);
+  if (!parsed) return value;
 
   return parsed.toLocaleDateString('pt-BR');
 };
