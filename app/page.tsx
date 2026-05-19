@@ -67,7 +67,8 @@ import {
   serverTimestamp,
   increment,
   writeBatch,
-  collectionGroup
+  collectionGroup,
+  waitForPendingWrites
 } from '@/firebase';
 import ErrorBoundary from '@/components/ErrorBoundary';
 
@@ -1613,12 +1614,16 @@ export default function App() {
       const currentShift = employee?.shifts?.[dayIndex];
       const normalizedType = normalizeShiftType(newShift.type);
       const currentShiftType = normalizeShiftType(currentShift?.type);
-      const batch = writeBatch(db);
       const shiftLogRef = doc(collection(db, 'audit_logs'));
+      const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const absenceAlertRef = doc(db, 'alerts', `absence_${empId}_${dateString}`);
+      const workedOffAlertRef = doc(db, 'alerts', `worked_off_${empId}_${dateString}`);
 
       if (normalizedType === 'empty') {
-        batch.delete(shiftRef);
-        batch.set(shiftLogRef, {
+        await deleteDoc(shiftRef);
+        await waitForPendingWrites(db);
+        const auxWrites = [
+          setDoc(shiftLogRef, {
           entity: 'shifts',
           action: 'delete',
           employeeId: empId,
@@ -1633,16 +1638,20 @@ export default function App() {
           performedByName: currentUser?.name || '',
           performedByEmail: currentUser?.email || '',
           updatedAt: serverTimestamp()
-        });
+          }),
+        ];
         if (currentShiftType === 'absence') {
-          batch.delete(doc(db, 'alerts', `absence_${empId}_${String(year)}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`));
+          auxWrites.push(deleteDoc(absenceAlertRef));
         }
-        await batch.commit();
+        if (currentShiftType === 'off_worked') {
+          auxWrites.push(deleteDoc(workedOffAlertRef));
+        }
+        await Promise.allSettled(auxWrites);
         showToast("Escala removida.");
         return true;
       }
 
-      batch.set(shiftRef, {
+      await setDoc(shiftRef, {
         employeeId: empId,
         day,
         month,
@@ -1652,8 +1661,10 @@ export default function App() {
         overtime: !!newShift.overtime,
         updatedAt: serverTimestamp()
       });
+      await waitForPendingWrites(db);
 
-      batch.set(shiftLogRef, {
+      const auxWrites = [
+        setDoc(shiftLogRef, {
         entity: 'shifts',
         action: currentShiftType ? 'update' : 'create',
         employeeId: empId,
@@ -1668,13 +1679,10 @@ export default function App() {
         performedByName: currentUser?.name || '',
         performedByEmail: currentUser?.email || '',
         updatedAt: serverTimestamp()
-      });
-
-      const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const absenceAlertRef = doc(db, 'alerts', `absence_${empId}_${dateString}`);
-      const workedOffAlertRef = doc(db, 'alerts', `worked_off_${empId}_${dateString}`);
+        }),
+      ];
       if (normalizedType === 'absence') {
-        batch.set(absenceAlertRef, {
+        auxWrites.push(setDoc(absenceAlertRef, {
           type: 'error',
           date: dateString,
           message: `Falta: ${employee?.name || 'Colaborador'} | Motivo: Lançada pela escala`,
@@ -1684,13 +1692,13 @@ export default function App() {
           employeeId: empId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
-        });
+        }));
       } else if (currentShiftType === 'absence') {
-        batch.delete(absenceAlertRef);
+        auxWrites.push(deleteDoc(absenceAlertRef));
       }
 
       if (normalizedType === 'off_worked') {
-        batch.set(workedOffAlertRef, {
+        auxWrites.push(setDoc(workedOffAlertRef, {
           type: 'warning',
           date: dateString,
           message: `Folga Trabalhada: ${employee?.name || 'Colaborador'} | Data: ${dateString} | Setor: ${getAlertSectorName({ sectorId: employee?.sectorId }, sectors)}`,
@@ -1700,12 +1708,16 @@ export default function App() {
           sectorId: employee?.sectorId || '',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
-        });
+        }));
       } else if (currentShiftType === 'off_worked') {
-        batch.delete(workedOffAlertRef);
+        auxWrites.push(deleteDoc(workedOffAlertRef));
       }
 
-      await batch.commit();
+      const auxResults = await Promise.allSettled(auxWrites);
+      const rejectedAux = auxResults.filter(result => result.status === 'rejected');
+      if (rejectedAux.length > 0) {
+        console.warn('Some auxiliary shift writes failed:', rejectedAux);
+      }
 
       showToast("Escala atualizada!");
       return true;
