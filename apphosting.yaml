@@ -1,5 +1,6 @@
 # Firebase App Hosting configuration for the Next.js app.
-# Replace the placeholder values with the Firebase project values you want to use in production.
+# Keep only client-safe runtime variables here.
+# Server-side secrets such as Firebase Admin credentials and CRON_SECRET should be managed separately.
 scripts:
   buildCommand: npm run build
   runCommand: npm run start
@@ -39,8 +40,4 @@ env:
     value: G-EL79Y0D94C
     availability:
       - BUILD
-      - RUNTIME
-  - variable: RESEND_API_KEY
-    value: REPLACE_WITH_PRODUCTION_VALUE
-    availability:
       - RUNTIME

@@ -178,7 +178,7 @@ export async function sendWeeklyRhReport(referenceDate = new Date()): Promise<We
       to: [rhEmail],
       subject,
       html,
-      text: [
+    text: [
         `Relatório semanal de RH - ${label}`,
         `Faltas: ${absences.length}`,
         `Dobras: ${doubleShifts.length}`,

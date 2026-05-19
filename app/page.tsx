@@ -617,16 +617,6 @@ export default function App() {
   const [shiftPickerTarget, setShiftPickerTarget] = useState<{ empId: string; dayIndex: number } | null>(null);
   const [reportDateFrom, setReportDateFrom] = useState('');
   const [reportDateTo, setReportDateTo] = useState('');
-  const [reportRowsCache, setReportRowsCache] = useState<{
-    absences: Array<Record<string, string>>;
-    double_shifts: Array<Record<string, string>>;
-    overtime: Array<Record<string, string>>;
-  }>({
-    absences: [],
-    double_shifts: [],
-    overtime: [],
-  });
-  const [isPreparingReports, setIsPreparingReports] = useState(false);
 
   const getFriendlyAuthError = (error: unknown, action: 'google' | 'email' | 'reset') => {
     const code = typeof error === 'object' && error && 'code' in error
@@ -2054,43 +2044,6 @@ export default function App() {
         };
       });
   };
-
-  const refreshReportsCache = async () => {
-    setIsPreparingReports(true);
-    try {
-      const [absencesResult, doubleShiftsResult, overtimeResult] = await Promise.allSettled([
-        buildSensitiveReportRows('absences'),
-        buildSensitiveReportRows('double_shifts'),
-        buildSensitiveReportRows('overtime'),
-      ]);
-      setReportRowsCache({
-        absences: absencesResult.status === 'fulfilled' ? absencesResult.value : [],
-        double_shifts: doubleShiftsResult.status === 'fulfilled' ? doubleShiftsResult.value : [],
-        overtime: overtimeResult.status === 'fulfilled' ? overtimeResult.value : [],
-      });
-      const failedKinds = [
-        absencesResult.status === 'rejected' ? 'faltas' : null,
-        doubleShiftsResult.status === 'rejected' ? 'dobras/folgas' : null,
-        overtimeResult.status === 'rejected' ? 'horas extras' : null,
-      ].filter(Boolean);
-      if (failedKinds.length > 0) {
-        console.error('Failed to prepare some report caches:', {
-          absencesResult,
-          doubleShiftsResult,
-          overtimeResult,
-        });
-        showToast(`Alguns relatórios não puderam ser preparados: ${failedKinds.join(', ')}.`, 'error');
-      }
-    } finally {
-      setIsPreparingReports(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!isAuthReady || !currentUser) return;
-    if (view !== 'reports' && view !== 'absences' && view !== 'double_shifts' && view !== 'overtime') return;
-    void refreshReportsCache();
-  }, [view, reportDateFrom, reportDateTo, isAuthReady, currentUser]);
 
   const exportSensitiveReportXlsx = async (
     kind: 'absences' | 'double_shifts' | 'overtime',
