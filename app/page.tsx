@@ -190,6 +190,13 @@ const getAlertDateKey = (alert: any) => {
   return rawDate.slice(0, 10);
 };
 
+const getShiftDateKey = (shift: any) => {
+  if (shift?.year && shift?.month && shift?.day) {
+    return `${String(shift.year).padStart(4, '0')}-${String(shift.month).padStart(2, '0')}-${String(shift.day).padStart(2, '0')}`;
+  }
+  return '';
+};
+
 const getAlertCreatedAtMillis = (alert: any) => {
   const createdAt = alert?.createdAt;
   if (createdAt?.toMillis) return createdAt.toMillis();
@@ -1879,11 +1886,61 @@ export default function App() {
   };
 
   const buildSensitiveReportRows = (kind: 'absences' | 'double_shifts' | 'overtime'): Array<Record<string, string>> => {
+    if (kind === 'double_shifts') {
+      const shiftRows = employees.flatMap((employee: any) => {
+        return (employee.shifts || [])
+          .map((shift: any, index: number) => {
+            const normalizedType = normalizeShiftType(shift?.type);
+            if (normalizedType !== 'off_worked') return null;
+
+            const day = Number(shift?.day || index + 1);
+            const month = Number(shift?.month || currentDate.getMonth() + 1);
+            const year = Number(shift?.year || currentDate.getFullYear());
+            const dateKey = getShiftDateKey({ day, month, year });
+
+            return {
+              dateKey,
+              createdAtMillis: new Date(`${dateKey}T12:00:00`).getTime(),
+              row: {
+                Data: formatReportDate(dateKey),
+                Colaborador: employee.name || 'Colaborador',
+                Setor: getAlertSectorName({ sectorId: employee.sectorId }, sectors),
+                Tipo: 'Folga Trabalhada',
+              },
+            };
+          })
+          .filter(Boolean) as Array<{ dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
+      });
+
+      const alertRows = filteredDoubleShiftAlerts.map((alert: any) => {
+        const dateKey = getAlertDateKey(alert);
+        return {
+          dateKey,
+          createdAtMillis: getAlertCreatedAtMillis(alert),
+          row: {
+            Data: formatReportDate(alert.date || alert.createdAt?.toDate?.()?.toISOString?.()),
+            Colaborador: getAlertEmployeeName(alert, 'Dobra'),
+            Setor: getAlertSectorName(alert, sectors),
+            Tipo: 'Dobra',
+          },
+        };
+      });
+
+      return [...alertRows, ...shiftRows]
+        .filter(item => !reportDateFrom || item.dateKey >= reportDateFrom)
+        .filter(item => !reportDateTo || item.dateKey <= reportDateTo)
+        .sort((left, right) => {
+          const dateCompare = left.dateKey.localeCompare(right.dateKey);
+          if (dateCompare !== 0) return dateCompare;
+          if (left.createdAtMillis !== right.createdAtMillis) return left.createdAtMillis - right.createdAtMillis;
+          return String(left.row.Colaborador || '').localeCompare(String(right.row.Colaborador || ''));
+        })
+        .map(item => item.row);
+    }
+
     const records = kind === 'absences'
       ? filteredAbsenceAlerts
-      : kind === 'double_shifts'
-        ? filteredDoubleShiftAlerts
-        : filteredOvertimeAlerts;
+      : filteredOvertimeAlerts;
 
     return [...records]
       .sort((left, right) => {
@@ -1895,9 +1952,7 @@ export default function App() {
         const employeeName =
           kind === 'absences'
             ? getAlertEmployeeName(alert, 'Falta')
-            : kind === 'double_shifts'
-              ? getAlertEmployeeName(alert, 'Dobra')
-              : getAlertEmployeeName(alert, 'Solicitação de Hora Extra');
+            : getAlertEmployeeName(alert, 'Solicitação de Hora Extra');
 
         return {
           Data: formatReportDate(alert.date || alert.createdAt?.toDate?.()?.toISOString?.()),
@@ -1957,7 +2012,7 @@ export default function App() {
 
   const exportAbsencesPdf = () => exportSensitiveReportPdf('absences', 'Relatório de Faltas', 'faltas.pdf');
   const exportAbsencesXlsx = () => exportSensitiveReportXlsx('absences', 'faltas.xlsx', 'Faltas');
-  const exportDoubleShiftsPdf = () => exportSensitiveReportPdf('double_shifts', 'Relatório de Dobras', 'dobras.pdf');
+  const exportDoubleShiftsPdf = () => exportSensitiveReportPdf('double_shifts', 'Relatório de Dobras e Folgas Trabalhadas', 'dobras.pdf');
   const exportDoubleShiftsXlsx = () => exportSensitiveReportXlsx('double_shifts', 'dobras.xlsx', 'Dobras');
   const exportOvertimePdf = () => exportSensitiveReportPdf('overtime', 'Relatório de Horas Extras', 'horas-extras.pdf');
   const exportOvertimeXlsx = () => exportSensitiveReportXlsx('overtime', 'horas-extras.xlsx', 'Horas Extras');
@@ -3684,8 +3739,8 @@ export default function App() {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                       <button onClick={exportAbsencesPdf} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">Faltas PDF</button>
                       <button onClick={exportAbsencesXlsx} className="px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">Faltas XLSX</button>
-                      <button onClick={exportDoubleShiftsPdf} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">Dobras PDF</button>
-                      <button onClick={exportDoubleShiftsXlsx} className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-bold hover:bg-yellow-600 transition-colors">Dobras XLSX</button>
+                      <button onClick={exportDoubleShiftsPdf} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">Dobras/Folgas PDF</button>
+                      <button onClick={exportDoubleShiftsXlsx} className="px-4 py-2 rounded-lg bg-yellow-500 text-white text-sm font-bold hover:bg-yellow-600 transition-colors">Dobras/Folgas XLSX</button>
                       <button onClick={exportOvertimePdf} className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">HE PDF</button>
                       <button onClick={exportOvertimeXlsx} className="px-4 py-2 rounded-lg bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors">HE XLSX</button>
                     </div>
@@ -3760,7 +3815,7 @@ export default function App() {
                     <div className="w-12 h-12 bg-yellow-50 text-yellow-500 rounded-lg flex items-center justify-center mb-4">
                       <Layers size={24} />
                     </div>
-                    <h4 className="font-bold mb-2">Relatório de Dobras</h4>
+                    <h4 className="font-bold mb-2">Relatório de Dobras e Folgas Trabalhadas</h4>
                     <p className="text-sm text-slate-500 mb-4">Exporte os turnos duplos registrados em PDF ou XLSX.</p>
                     <div className="grid grid-cols-2 gap-2">
                       <button 
