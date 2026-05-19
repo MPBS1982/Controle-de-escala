@@ -1907,11 +1907,39 @@ export default function App() {
 
   const buildSensitiveReportRows = (kind: 'absences' | 'double_shifts' | 'overtime'): Array<Record<string, string>> => {
     if (kind === 'double_shifts') {
+      const shiftRows = employees.flatMap((employee: any) => {
+        return (employee.shifts || [])
+          .map((shift: any, index: number) => {
+            const normalizedType = normalizeShiftType(shift?.type);
+            if (normalizedType !== 'off_worked') return null;
+
+            const day = Number(shift?.day || index + 1);
+            const month = Number(shift?.month || currentDate.getMonth() + 1);
+            const year = Number(shift?.year || currentDate.getFullYear());
+            const dateKey = getShiftDateKey({ day, month, year });
+            if (!dateKey) return null;
+
+            return {
+              key: `${dateKey}|${employee.id}|Folga Trabalhada`,
+              dateKey,
+              createdAtMillis: new Date(`${dateKey}T12:00:00`).getTime(),
+              row: {
+                Data: formatReportDate(dateKey),
+                Colaborador: employee.name || 'Colaborador',
+                Setor: getAlertSectorName({ sectorId: employee.sectorId }, sectors),
+                Tipo: 'Folga Trabalhada',
+              },
+            };
+          })
+          .filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
+      });
+
       const alertRows = filteredDoubleShiftAlerts.map((alert: any) => {
         const title = String(alert.title || '');
         const isWorkedOff = title.startsWith('Folga Trabalhada:');
         const dateKey = getAlertDateKey(alert);
         return {
+          key: `${dateKey}|${alert.employeeId || getAlertEmployeeName(alert, isWorkedOff ? 'Folga Trabalhada' : 'Dobra')}|${isWorkedOff ? 'Folga Trabalhada' : 'Dobra'}`,
           dateKey,
           createdAtMillis: getAlertCreatedAtMillis(alert),
           row: {
@@ -1925,7 +1953,13 @@ export default function App() {
         };
       });
 
-      return alertRows
+      const mergedRows = [...shiftRows, ...alertRows];
+      const uniqueRows = mergedRows.reduce((acc, item) => {
+        if (!acc.has(item.key)) acc.set(item.key, item);
+        return acc;
+      }, new Map<string, { key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>());
+
+      return Array.from(uniqueRows.values())
         .filter(item => !reportDateFrom || item.dateKey >= reportDateFrom)
         .filter(item => !reportDateTo || item.dateKey <= reportDateTo)
         .sort((left, right) => {
