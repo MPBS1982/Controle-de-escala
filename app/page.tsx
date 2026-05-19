@@ -1974,7 +1974,8 @@ export default function App() {
     }
 
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const headers = ['Data', 'Colaborador', 'Setor', 'Tipo'].filter(header => header in rows[0]);
+    const worksheet = XLSX.utils.json_to_sheet(rows, { header: headers });
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
     XLSX.writeFile(workbook, filename);
     showToast(`Arquivo ${filename} gerado com sucesso!`);
@@ -1995,7 +1996,7 @@ export default function App() {
     doc.setFontSize(18);
     doc.text(title, 14, 15);
 
-    const headers = Object.keys(rows[0]);
+    const headers = ['Data', 'Colaborador', 'Setor', 'Tipo'].filter(header => header in rows[0]);
     autoTable(doc, {
       head: [headers],
       body: rows.map((row) => headers.map((header) => row[header] || '-')),
