@@ -1,22 +1,22 @@
-import { cert, getApps, initializeApp, App } from 'firebase-admin/app';
+import { cert, getApps, initializeApp, App, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 function buildServiceAccount() {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
   if (serviceAccountJson) {
-    return JSON.parse(serviceAccountJson);
+    return JSON.parse(serviceAccountJson) as ServiceAccount;
   }
 
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL;
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n');
 
   if (projectId && clientEmail && privateKey) {
     return {
-      projectId,
       clientEmail,
       privateKey,
+      projectId,
     };
   }
 
