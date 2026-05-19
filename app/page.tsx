@@ -678,7 +678,10 @@ export default function App() {
   }, [alerts]);
 
   const doubleShiftAlerts = useMemo(() => {
-    return alerts.filter(alert => alert.type === 'warning' && String(alert.title || '').startsWith('Dobra:'));
+    return alerts.filter(alert => {
+      const title = String(alert.title || '');
+      return alert.type === 'warning' && (title.startsWith('Dobra:') || title.startsWith('Folga Trabalhada:'));
+    });
   }, [alerts]);
 
   const overtimeAlerts = useMemo(() => {
@@ -1668,6 +1671,7 @@ export default function App() {
 
       const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const absenceAlertRef = doc(db, 'alerts', `absence_${empId}_${dateString}`);
+      const workedOffAlertRef = doc(db, 'alerts', `worked_off_${empId}_${dateString}`);
       if (normalizedType === 'absence') {
         batch.set(absenceAlertRef, {
           type: 'error',
@@ -1682,6 +1686,22 @@ export default function App() {
         });
       } else if (currentShiftType === 'absence') {
         batch.delete(absenceAlertRef);
+      }
+
+      if (normalizedType === 'off_worked') {
+        batch.set(workedOffAlertRef, {
+          type: 'warning',
+          date: dateString,
+          message: `Folga Trabalhada: ${employee?.name || 'Colaborador'} | Data: ${dateString} | Setor: ${getAlertSectorName({ sectorId: employee?.sectorId }, sectors)}`,
+          title: `Folga Trabalhada: ${employee?.name || 'Colaborador'}`,
+          description: `Colaborador: ${employee?.name || 'Colaborador'} | Data: ${dateString} | Setor: ${getAlertSectorName({ sectorId: employee?.sectorId }, sectors)}`,
+          employeeId: empId,
+          sectorId: employee?.sectorId || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } else if (currentShiftType === 'off_worked') {
+        batch.delete(workedOffAlertRef);
       }
 
       applyShiftLocally(empId, dayIndex, { type: normalizedType, time: newShift.time, overtime: !!newShift.overtime });
@@ -1887,46 +1907,25 @@ export default function App() {
 
   const buildSensitiveReportRows = (kind: 'absences' | 'double_shifts' | 'overtime'): Array<Record<string, string>> => {
     if (kind === 'double_shifts') {
-      const shiftRows = employees.flatMap((employee: any) => {
-        return (employee.shifts || [])
-          .map((shift: any, index: number) => {
-            const normalizedType = normalizeShiftType(shift?.type);
-            if (normalizedType !== 'off_worked') return null;
-
-            const day = Number(shift?.day || index + 1);
-            const month = Number(shift?.month || currentDate.getMonth() + 1);
-            const year = Number(shift?.year || currentDate.getFullYear());
-            const dateKey = getShiftDateKey({ day, month, year });
-
-            return {
-              dateKey,
-              createdAtMillis: new Date(`${dateKey}T12:00:00`).getTime(),
-              row: {
-                Data: formatReportDate(dateKey),
-                Colaborador: employee.name || 'Colaborador',
-                Setor: getAlertSectorName({ sectorId: employee.sectorId }, sectors),
-                Tipo: 'Folga Trabalhada',
-              },
-            };
-          })
-          .filter(Boolean) as Array<{ dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
-      });
-
       const alertRows = filteredDoubleShiftAlerts.map((alert: any) => {
+        const title = String(alert.title || '');
+        const isWorkedOff = title.startsWith('Folga Trabalhada:');
         const dateKey = getAlertDateKey(alert);
         return {
           dateKey,
           createdAtMillis: getAlertCreatedAtMillis(alert),
           row: {
             Data: formatReportDate(alert.date || alert.createdAt?.toDate?.()?.toISOString?.()),
-            Colaborador: getAlertEmployeeName(alert, 'Dobra'),
+            Colaborador: isWorkedOff
+              ? getAlertEmployeeName(alert, 'Folga Trabalhada')
+              : getAlertEmployeeName(alert, 'Dobra'),
             Setor: getAlertSectorName(alert, sectors),
-            Tipo: 'Dobra',
+            Tipo: isWorkedOff ? 'Folga Trabalhada' : 'Dobra',
           },
         };
       });
 
-      return [...alertRows, ...shiftRows]
+      return alertRows
         .filter(item => !reportDateFrom || item.dateKey >= reportDateFrom)
         .filter(item => !reportDateTo || item.dateKey <= reportDateTo)
         .sort((left, right) => {
