@@ -1905,34 +1905,50 @@ export default function App() {
     showToast("Relatório de escalas especiais gerado!");
   };
 
-  const buildSensitiveReportRows = (kind: 'absences' | 'double_shifts' | 'overtime'): Array<Record<string, string>> => {
+  const buildSensitiveReportRows = async (kind: 'absences' | 'double_shifts' | 'overtime'): Promise<Array<Record<string, string>>> => {
     if (kind === 'double_shifts') {
-      const shiftRows = employees.flatMap((employee: any) => {
-        return (employee.shifts || [])
-          .map((shift: any, index: number) => {
-            const normalizedType = normalizeShiftType(shift?.type);
-            if (normalizedType !== 'off_worked') return null;
+      const [shiftSnapshot, employeeSnapshot] = await Promise.all([
+        getDocs(query(collectionGroup(db, 'shifts'), where('type', '==', 'off_worked'))),
+        getDocs(collection(db, 'employees')),
+      ]);
 
-            const day = Number(shift?.day || index + 1);
-            const month = Number(shift?.month || currentDate.getMonth() + 1);
-            const year = Number(shift?.year || currentDate.getFullYear());
-            const dateKey = getShiftDateKey({ day, month, year });
-            if (!dateKey) return null;
+      const employeeLookup = new Map(
+        employeeSnapshot.docs.map(employeeDoc => {
+          const data = employeeDoc.data() as any;
+          return [
+            employeeDoc.id,
+            {
+              name: String(data?.name || 'Colaborador'),
+              sectorId: String(data?.sectorId || ''),
+            },
+          ] as const;
+        }),
+      );
 
-            return {
-              key: `${dateKey}|${employee.id}|Folga Trabalhada`,
-              dateKey,
-              createdAtMillis: new Date(`${dateKey}T12:00:00`).getTime(),
-              row: {
-                Data: formatReportDate(dateKey),
-                Colaborador: employee.name || 'Colaborador',
-                Setor: getAlertSectorName({ sectorId: employee.sectorId }, sectors),
-                Tipo: 'Folga Trabalhada',
-              },
-            };
-          })
-          .filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
-      });
+      const shiftRows = shiftSnapshot.docs.map(docSnap => {
+        const shift = docSnap.data() as any;
+        const employeeId = String(shift?.employeeId || docSnap.ref.parent.parent?.id || '');
+        const employee = employeeLookup.get(employeeId);
+        const day = Number(shift?.day || 0);
+        const month = Number(shift?.month || 0);
+        const year = Number(shift?.year || 0);
+        const dateKey = getShiftDateKey({ day, month, year });
+        if (!dateKey) return null;
+        const shiftCreatedAtMillis =
+          Number(shift?.updatedAt?.toDate?.()?.getTime?.() || shift?.createdAt?.toDate?.()?.getTime?.() || 0);
+
+        return {
+          key: `${dateKey}|${employeeId}|Folga Trabalhada`,
+          dateKey,
+          createdAtMillis: shiftCreatedAtMillis || new Date(`${dateKey}T12:00:00`).getTime(),
+          row: {
+            Data: formatReportDate(dateKey),
+            Colaborador: employee?.name || 'Colaborador',
+            Setor: getAlertSectorName({ sectorId: employee?.sectorId }, sectors),
+            Tipo: 'Folga Trabalhada',
+          },
+        };
+      }).filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>;
 
       const alertRows = filteredDoubleShiftAlerts.map((alert: any) => {
         const title = String(alert.title || '');
@@ -1995,12 +2011,12 @@ export default function App() {
       });
   };
 
-  const exportSensitiveReportXlsx = (
+  const exportSensitiveReportXlsx = async (
     kind: 'absences' | 'double_shifts' | 'overtime',
     filename: string,
     sheetName: string,
   ) => {
-    const rows = buildSensitiveReportRows(kind);
+    const rows = await buildSensitiveReportRows(kind);
     if (rows.length === 0) {
       showToast('Não há dados para exportar.', 'info');
       return;
@@ -2014,12 +2030,12 @@ export default function App() {
     showToast(`Arquivo ${filename} gerado com sucesso!`);
   };
 
-  const exportSensitiveReportPdf = (
+  const exportSensitiveReportPdf = async (
     kind: 'absences' | 'double_shifts' | 'overtime',
     title: string,
     filename: string,
   ) => {
-    const rows = buildSensitiveReportRows(kind);
+    const rows = await buildSensitiveReportRows(kind);
     if (rows.length === 0) {
       showToast('Não há dados para exportar.', 'info');
       return;
@@ -2044,12 +2060,12 @@ export default function App() {
     showToast(`${title} gerado com sucesso!`);
   };
 
-  const exportAbsencesPdf = () => exportSensitiveReportPdf('absences', 'Relatório de Faltas', 'faltas.pdf');
-  const exportAbsencesXlsx = () => exportSensitiveReportXlsx('absences', 'faltas.xlsx', 'Faltas');
-  const exportDoubleShiftsPdf = () => exportSensitiveReportPdf('double_shifts', 'Relatório de Dobras e Folgas Trabalhadas', 'dobras.pdf');
-  const exportDoubleShiftsXlsx = () => exportSensitiveReportXlsx('double_shifts', 'dobras.xlsx', 'Dobras');
-  const exportOvertimePdf = () => exportSensitiveReportPdf('overtime', 'Relatório de Horas Extras', 'horas-extras.pdf');
-  const exportOvertimeXlsx = () => exportSensitiveReportXlsx('overtime', 'horas-extras.xlsx', 'Horas Extras');
+  const exportAbsencesPdf = () => void exportSensitiveReportPdf('absences', 'Relatório de Faltas', 'faltas.pdf');
+  const exportAbsencesXlsx = () => void exportSensitiveReportXlsx('absences', 'faltas.xlsx', 'Faltas');
+  const exportDoubleShiftsPdf = () => void exportSensitiveReportPdf('double_shifts', 'Relatório de Dobras e Folgas Trabalhadas', 'dobras.pdf');
+  const exportDoubleShiftsXlsx = () => void exportSensitiveReportXlsx('double_shifts', 'dobras.xlsx', 'Dobras');
+  const exportOvertimePdf = () => void exportSensitiveReportPdf('overtime', 'Relatório de Horas Extras', 'horas-extras.pdf');
+  const exportOvertimeXlsx = () => void exportSensitiveReportXlsx('overtime', 'horas-extras.xlsx', 'Horas Extras');
 
   const requestOvertime = async (employeeId: string, date: string, sectorId: string) => {
       const employee = employees.find(e => e.id === employeeId);
