@@ -2097,7 +2097,7 @@ export default function App() {
     filename: string,
     sheetName: string,
   ) => {
-    const rows = reportRowsCache[kind].length > 0 ? reportRowsCache[kind] : await buildSensitiveReportRows(kind);
+    const rows = await buildSensitiveReportRows(kind);
     if (rows.length === 0) {
       showToast('Não há dados para exportar.', 'info');
       return;
@@ -2116,7 +2116,7 @@ export default function App() {
     title: string,
     filename: string,
   ) => {
-    const rows = reportRowsCache[kind].length > 0 ? reportRowsCache[kind] : await buildSensitiveReportRows(kind);
+    const rows = await buildSensitiveReportRows(kind);
     if (rows.length === 0) {
       showToast('Não há dados para exportar.', 'info');
       return;
