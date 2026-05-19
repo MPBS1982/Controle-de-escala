@@ -190,6 +190,8 @@ const getAlertDateKey = (alert: any) => {
   return rawDate.slice(0, 10);
 };
 
+const normalizeText = (value?: string | null) => (value || '').toLowerCase();
+
 const getShiftDateKey = (shift: any) => {
   if (shift?.year && shift?.month && shift?.day) {
     return `${String(shift.year).padStart(4, '0')}-${String(shift.month).padStart(2, '0')}-${String(shift.day).padStart(2, '0')}`;
@@ -679,8 +681,8 @@ export default function App() {
 
   const doubleShiftAlerts = useMemo(() => {
     return alerts.filter(alert => {
-      const title = String(alert.title || '');
-      return alert.type === 'warning' && (title.startsWith('Dobra:') || title.startsWith('Folga Trabalhada:'));
+      const title = normalizeText(String(alert.title || ''));
+      return alert.type === 'warning' && (title.includes('dobra:') || title.includes('folga trabalhada:'));
     });
   }, [alerts]);
 
@@ -1635,10 +1637,9 @@ export default function App() {
         if (currentShiftType === 'absence') {
           batch.delete(doc(db, 'alerts', `absence_${empId}_${String(year)}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`));
         }
-        applyShiftLocally(empId, dayIndex, newShift);
         await batch.commit();
         showToast("Escala removida.");
-        return;
+        return true;
       }
 
       batch.set(shiftRef, {
@@ -1704,12 +1705,13 @@ export default function App() {
         batch.delete(workedOffAlertRef);
       }
 
-      applyShiftLocally(empId, dayIndex, { type: normalizedType, time: newShift.time, overtime: !!newShift.overtime });
       await batch.commit();
 
       showToast("Escala atualizada!");
+      return true;
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, `employees/${empId}/shifts`);
+      return false;
     }
   };
 
@@ -1907,7 +1909,8 @@ export default function App() {
 
   const buildSensitiveReportRows = async (kind: 'absences' | 'double_shifts' | 'overtime'): Promise<Array<Record<string, string>>> => {
     if (kind === 'double_shifts') {
-      const [shiftResult, employeeResult, auditResult] = await Promise.allSettled([
+      const [alertResult, shiftResult, employeeResult, auditResult] = await Promise.allSettled([
+        getDocs(collection(db, 'alerts')),
         getDocs(collectionGroup(db, 'shifts')),
         getDocs(collection(db, 'employees')),
         getDocs(collection(db, 'audit_logs')),
@@ -1923,6 +1926,22 @@ export default function App() {
           });
         });
       }
+
+      const reportAlerts = alertResult.status === 'fulfilled'
+        ? alertResult.value.docs
+            .map(docSnap => ({ id: docSnap.id, ...docSnap.data() }))
+            .filter((alert: any) => {
+              const title = normalizeText(String(alert?.title || ''));
+              return String(alert?.type || '') === 'warning' && (title.includes('dobra:') || title.includes('folga trabalhada:'));
+            })
+            .filter((alert: any) => {
+              const dateKey = getAlertDateKey(alert);
+              if (!dateKey) return true;
+              if (reportDateFrom && dateKey < reportDateFrom) return false;
+              if (reportDateTo && dateKey > reportDateTo) return false;
+              return true;
+            })
+        : [];
 
       const shiftRows = shiftResult.status === 'fulfilled'
         ? shiftResult.value.docs.map(docSnap => {
@@ -1984,9 +2003,9 @@ export default function App() {
             .filter(Boolean) as Array<{ key: string; dateKey: string; createdAtMillis: number; row: Record<string, string> }>
         : [];
 
-      const alertRows = filteredDoubleShiftAlerts.map((alert: any) => {
-        const title = String(alert.title || '');
-        const isWorkedOff = title.startsWith('Folga Trabalhada:');
+      const alertRows = reportAlerts.map((alert: any) => {
+        const title = normalizeText(String(alert.title || ''));
+        const isWorkedOff = title.includes('folga trabalhada:');
         const dateKey = getAlertDateKey(alert);
         return {
           key: `${dateKey}|${alert.employeeId || getAlertEmployeeName(alert, isWorkedOff ? 'Folga Trabalhada' : 'Dobra')}|${isWorkedOff ? 'Folga Trabalhada' : 'Dobra'}`,
@@ -4130,12 +4149,13 @@ export default function App() {
                   <button
                     key={`picker-${option.type}`}
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       if (!shiftPickerTarget) return;
+                      const saved = await updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
+                      if (!saved) return;
                       applyShiftLocally(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
                       setIsShiftPickerOpen(false);
                       setShiftPickerTarget(null);
-                      void updateShift(shiftPickerTarget.empId, shiftPickerTarget.dayIndex, option);
                     }}
                     className={cn(
                       "p-4 border rounded-xl hover:border-primary hover:bg-primary/5 transition-all text-left",
@@ -4188,8 +4208,11 @@ export default function App() {
                   <button
                     type="button"
                     key={`shift-type-${s.type}`}
-                    onClick={() => {
-                      updateShift(editingShift.empId, editingShift.dayIndex, s);
+                    onClick={async () => {
+                      if (!editingShift) return;
+                      const saved = await updateShift(editingShift.empId, editingShift.dayIndex, s);
+                      if (!saved) return;
+                      applyShiftLocally(editingShift.empId, editingShift.dayIndex, s);
                       setIsShiftModalOpen(false);
                       setEditingShift(null);
                     }}
@@ -4201,11 +4224,13 @@ export default function App() {
                 ))}
               </div>
               <div className="mt-4 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
+                  <button
+                    type="button"
+                    onClick={async () => {
                     if (!editingShift) return;
-                    updateShift(editingShift.empId, editingShift.dayIndex, { type: 'empty' });
+                    const saved = await updateShift(editingShift.empId, editingShift.dayIndex, { type: 'empty' });
+                    if (!saved) return;
+                    applyShiftLocally(editingShift.empId, editingShift.dayIndex, { type: 'empty' });
                     setIsShiftModalOpen(false);
                     setEditingShift(null);
                   }}
