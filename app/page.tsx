@@ -1282,7 +1282,7 @@ export default function App() {
           color: sector.color,
           icon: sector.icon,
           updatedAt: serverTimestamp(),
-        });
+        }, { merge: true });
       }
 
       console.log("Seeding roles...");
@@ -1290,7 +1290,7 @@ export default function App() {
         batch.set(doc(db, 'roles', role.id), {
           name: role.name,
           updatedAt: serverTimestamp(),
-        });
+        }, { merge: true });
       }
 
       console.log("Seeding employees...");
@@ -1301,13 +1301,13 @@ export default function App() {
           roleId: employee.roleId,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
-        });
+        }, { merge: true });
       }
 
       console.log("Seeding default config...");
-      batch.set(doc(db, 'config', 'rh_email'), { value: seedConfig.rh_email });
-      batch.set(doc(db, 'config', 'email_notifications'), { value: seedConfig.email_notifications });
-      batch.set(doc(db, 'config', 'dark_mode'), { value: seedConfig.dark_mode });
+      batch.set(doc(db, 'config', 'rh_email'), { value: seedConfig.rh_email }, { merge: true });
+      batch.set(doc(db, 'config', 'email_notifications'), { value: seedConfig.email_notifications }, { merge: true });
+      batch.set(doc(db, 'config', 'dark_mode'), { value: seedConfig.dark_mode }, { merge: true });
 
       await batch.commit();
       showToast("Base da planilha importada com sucesso!");
