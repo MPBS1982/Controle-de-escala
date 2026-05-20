@@ -1460,9 +1460,33 @@ export default function App() {
     });
   };
 
+  const deleteAlertViaServer = async (alertId: string) => {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) {
+      throw new Error('Não foi possível autenticar a exclusão.');
+    }
+
+    const response = await fetch('/api/alerts/delete', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ alertId }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data?.error || 'Erro ao excluir alerta.');
+    }
+
+    return data as { ok: boolean; deleted?: boolean; removedShift?: boolean };
+  };
+
   const deleteAlertWithAudit = async (alert: any, action: 'delete' | 'replace', details?: string) => {
+    if (!alert?.id) return;
     await logAlertAudit(action, alert, details);
-    await deleteDoc(doc(db, 'alerts', alert.id));
+    await deleteAlertViaServer(String(alert.id));
   };
 
   const deleteSpecialSchedule = async (id: string) => {
@@ -1751,32 +1775,8 @@ export default function App() {
     }
 
     try {
-      const alertRef = doc(db, 'alerts', id);
-      const alertSnapshot = await getDoc(alertRef);
-      if (!alertSnapshot.exists()) {
-        await deleteDoc(alertRef);
-        showToast("Alerta removido.");
-        return;
-      }
-
-      const alertData = { id, ...(alertSnapshot.data() as any) };
-      const alertDateKey = getAlertDateKey(alertData);
-      const employeeId = String(alertData.employeeId || '');
-      const dayIndex = alertDateKey ? Number(alertDateKey.split('-')[2]) - 1 : NaN;
-      const alertTitle = normalizeText(String(alertData.title || alertData.message || ''));
-      const shouldClearLinkedShift = Boolean(
-        employeeId &&
-        alertDateKey &&
-        (alertTitle.startsWith('falta:') || alertTitle.startsWith('folga trabalhada:'))
-      );
-
-      if (shouldClearLinkedShift && !Number.isNaN(dayIndex)) {
-        await updateShift(employeeId, dayIndex, { type: 'empty' });
-        await deleteAlertWithAudit(alertData, 'delete', 'Exclusão manual pela interface com limpeza da escala relacionada.');
-        showToast("Lançamento removido da escala e do alerta.");
-        return;
-      }
-
+      const alertSnapshot = await getDoc(doc(db, 'alerts', id));
+      const alertData = alertSnapshot.exists() ? { id, ...(alertSnapshot.data() as any) } : { id };
       await deleteAlertWithAudit(alertData, 'delete', 'Exclusão manual pela interface.');
       showToast("Alerta removido.");
     } catch (e) { 
