@@ -1439,7 +1439,7 @@ export default function App() {
   };
 
   const logAlertAudit = async (action: 'delete' | 'replace', alert: any, details?: string) => {
-    if (!currentUser?.isMaster || !alert?.id) return;
+    if (!currentUser?.uid || !canManageIncidentRecords || !alert?.id) return;
 
     await setDoc(doc(collection(db, 'audit_logs')), {
       entity: 'alerts',
@@ -1745,18 +1745,45 @@ export default function App() {
   };
 
   const removeAlert = async (id: string) => {
-    if (!currentUser?.isMaster) {
-      showToast("Apenas a conta master pode excluir esses registros.", "error");
+    if (!canManageIncidentRecords) {
+      showToast("Apenas administradores e a conta master podem excluir esses registros.", "error");
       return;
     }
 
     try {
-      const alertSnapshot = await getDoc(doc(db, 'alerts', id));
-      if (alertSnapshot.exists()) {
-        await deleteAlertWithAudit({ id, ...alertSnapshot.data() }, 'delete', 'Exclusão manual pela interface.');
-      } else {
-        await deleteDoc(doc(db, 'alerts', id));
+      const alertRef = doc(db, 'alerts', id);
+      const alertSnapshot = await getDoc(alertRef);
+      if (!alertSnapshot.exists()) {
+        await deleteDoc(alertRef);
+        showToast("Alerta removido.");
+        return;
       }
+
+      const alertData = { id, ...(alertSnapshot.data() as any) };
+      const alertDateKey = getAlertDateKey(alertData);
+      const employeeId = String(alertData.employeeId || '');
+      const employee = employees.find(emp => emp.id === employeeId);
+      const dayIndex = alertDateKey ? Number(alertDateKey.split('-')[2]) - 1 : NaN;
+      const shiftOnThatDay = Number.isFinite(dayIndex) && employee?.shifts?.[dayIndex] ? employee.shifts[dayIndex] : null;
+      const shouldClearLinkedShift = Boolean(
+        employeeId &&
+        alertDateKey &&
+        shiftOnThatDay &&
+        ['absence', 'off_worked'].includes(normalizeShiftType(shiftOnThatDay?.type)) &&
+        (
+          normalizeText(String(alertData.title || '')).startsWith('falta:') ||
+          normalizeText(String(alertData.title || '')).startsWith('folga trabalhada:')
+        )
+      );
+
+      if (shouldClearLinkedShift && !Number.isNaN(dayIndex)) {
+        await updateShift(employeeId, dayIndex, { type: 'empty' });
+        await logAlertAudit('delete', alertData, 'Exclusão manual pela interface com limpeza da escala relacionada.');
+        showToast("Lançamento removido da escala e do alerta.");
+        return;
+      }
+
+      await deleteAlertWithAudit(alertData, 'delete', 'Exclusão manual pela interface.');
       showToast("Alerta removido.");
     } catch (e) { 
       handleFirestoreError(e, OperationType.DELETE, `alerts/${id}`);
@@ -3221,7 +3248,7 @@ export default function App() {
                             <Edit2 size={18} />
                           </button>
                         )}
-                        {currentUser?.isMaster && (
+                        {canManageIncidentRecords && (
                           <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
                             <Ban size={18} />
                           </button>
@@ -3301,7 +3328,7 @@ export default function App() {
                               <Edit2 size={18} />
                             </button>
                           )}
-                          {currentUser?.isMaster && (
+                          {canManageIncidentRecords && (
                             <button onClick={() => removeAlert(alert.id)} className="text-slate-400 hover:text-red-500">
                               <Ban size={18} />
                             </button>

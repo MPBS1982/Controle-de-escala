@@ -223,7 +223,7 @@ service cloud.firestore {
     match /alerts/{alertId} {
       allow read: if isAuthenticated();
       allow create, update: if canEditOperationalData() && isValidAlert(request.resource.data);
-      allow delete: if isMasterEmail();
+      allow delete: if canEditOperationalData();
     }
 
     match /audit_logs/{logId} {
