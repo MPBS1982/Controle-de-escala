@@ -455,6 +455,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortAlphabetical, setSortAlphabetical] = useState(false);
   const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false);
+  const [seedConfirmText, setSeedConfirmText] = useState('');
   const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
   const [absencesViewedAt, setAbsencesViewedAt] = useState('');
   const [doubleShiftsViewedAt, setDoubleShiftsViewedAt] = useState('');
@@ -3606,6 +3607,7 @@ export default function App() {
                       <button 
                         onClick={() => {
                           console.log("Seed button clicked, opening confirmation modal...");
+                          setSeedConfirmText('');
                           setIsSeedConfirmOpen(true);
                         }}
                         className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-800 text-white rounded-lg font-bold hover:bg-slate-900 transition-all"
@@ -4714,11 +4716,20 @@ export default function App() {
               </div>
               <h3 className="text-xl font-bold mb-2">Importar base da planilha?</h3>
               <p className="text-slate-500 text-sm mb-8">
-                Isso irá adicionar todos os setores, cargos e colaboradores reais ao sistema. Esta ação não pode ser desfeita facilmente.
+                Isso irá sincronizar setores, cargos e colaboradores sem sobrescrever registros existentes. Para continuar, digite <strong>IMPORTAR</strong>.
               </p>
+              <input
+                value={seedConfirmText}
+                onChange={(e) => setSeedConfirmText(e.target.value.toUpperCase())}
+                placeholder="IMPORTAR"
+                className="w-full px-4 py-2 mb-6 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none text-center font-bold tracking-widest"
+              />
               <div className="flex gap-3">
                 <button 
-                  onClick={() => setIsSeedConfirmOpen(false)}
+                  onClick={() => {
+                    setIsSeedConfirmOpen(false);
+                    setSeedConfirmText('');
+                  }}
                   className="flex-1 px-4 py-2 border border-slate-200 rounded-lg font-bold text-slate-600 hover:bg-slate-50 transition-colors"
                 >
                   Cancelar
@@ -4726,9 +4737,11 @@ export default function App() {
                 <button 
                   onClick={() => {
                     setIsSeedConfirmOpen(false);
+                    setSeedConfirmText('');
                     seedDatabase();
                   }}
-                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
+                  disabled={seedConfirmText !== 'IMPORTAR'}
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Confirmar
                 </button>
