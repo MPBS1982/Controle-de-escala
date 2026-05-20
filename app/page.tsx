@@ -1762,23 +1762,17 @@ export default function App() {
       const alertData = { id, ...(alertSnapshot.data() as any) };
       const alertDateKey = getAlertDateKey(alertData);
       const employeeId = String(alertData.employeeId || '');
-      const employee = employees.find(emp => emp.id === employeeId);
       const dayIndex = alertDateKey ? Number(alertDateKey.split('-')[2]) - 1 : NaN;
-      const shiftOnThatDay = Number.isFinite(dayIndex) && employee?.shifts?.[dayIndex] ? employee.shifts[dayIndex] : null;
+      const alertTitle = normalizeText(String(alertData.title || alertData.message || ''));
       const shouldClearLinkedShift = Boolean(
         employeeId &&
         alertDateKey &&
-        shiftOnThatDay &&
-        ['absence', 'off_worked'].includes(normalizeShiftType(shiftOnThatDay?.type)) &&
-        (
-          normalizeText(String(alertData.title || '')).startsWith('falta:') ||
-          normalizeText(String(alertData.title || '')).startsWith('folga trabalhada:')
-        )
+        (alertTitle.startsWith('falta:') || alertTitle.startsWith('folga trabalhada:'))
       );
 
       if (shouldClearLinkedShift && !Number.isNaN(dayIndex)) {
         await updateShift(employeeId, dayIndex, { type: 'empty' });
-        await logAlertAudit('delete', alertData, 'Exclusão manual pela interface com limpeza da escala relacionada.');
+        await deleteAlertWithAudit(alertData, 'delete', 'Exclusão manual pela interface com limpeza da escala relacionada.');
         showToast("Lançamento removido da escala e do alerta.");
         return;
       }
