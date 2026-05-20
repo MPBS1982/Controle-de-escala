@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
 
     const payload = await request.json().catch(() => ({}));
     const alertId = String(payload?.alertId || '').trim();
+    const action = String(payload?.action || 'delete').trim() as 'delete' | 'replace';
+    const details = String(payload?.details || '').trim();
     if (!alertId) {
       return NextResponse.json({ error: 'missing_alert_id' }, { status: 400 });
     }
@@ -67,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     batch.set(db.collection('audit_logs').doc(), {
       entity: 'alerts',
-      action: 'delete',
+      action,
       alertId,
       alertType: String(alert.type || ''),
       alertTitle: String(alert.title || ''),
@@ -76,9 +78,11 @@ export async function POST(request: NextRequest) {
       employeeId: String(alert.employeeId || ''),
       sectorId: String(alert.sectorId || ''),
       reason: String(alert.reason || ''),
-      details: shouldRemoveShift
-        ? 'Exclusão via endpoint autenticado com limpeza da escala relacionada.'
-        : 'Exclusão via endpoint autenticado.',
+      details: details || (
+        shouldRemoveShift
+          ? 'Exclusão via endpoint autenticado com limpeza da escala relacionada.'
+          : 'Exclusão via endpoint autenticado.'
+      ),
       performedByUid: decoded.uid,
       performedByName: String(userRecord.displayName || userDoc.data()?.name || ''),
       performedByEmail: email,
@@ -95,7 +99,7 @@ export async function POST(request: NextRequest) {
     batch.delete(alertRef);
     await batch.commit();
 
-    return NextResponse.json({ ok: true, deleted: true, removedShift: shouldRemoveShift });
+    return NextResponse.json({ ok: true, deleted: true, removedShift: shouldRemoveShift, action });
   } catch (error: any) {
     console.error('delete alert route failed', error);
     return NextResponse.json(

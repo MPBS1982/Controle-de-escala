@@ -1438,29 +1438,7 @@ export default function App() {
     setIsNotificationMenuOpen(prev => !prev);
   };
 
-  const logAlertAudit = async (action: 'delete' | 'replace', alert: any, details?: string) => {
-    if (!currentUser?.uid || !canManageIncidentRecords || !alert?.id) return;
-
-    await setDoc(doc(collection(db, 'audit_logs')), {
-      entity: 'alerts',
-      action,
-      alertId: String(alert.id),
-      alertType: String(alert.type || ''),
-      alertTitle: String(alert.title || ''),
-      alertDescription: String(alert.description || alert.message || ''),
-      alertDate: String(alert.date || ''),
-      employeeId: String(alert.employeeId || ''),
-      sectorId: String(alert.sectorId || ''),
-      reason: String(alert.reason || ''),
-      details: details || '',
-      performedByUid: currentUser.uid || '',
-      performedByName: currentUser.name || '',
-      performedByEmail: currentUser.email || '',
-      createdAt: serverTimestamp()
-    });
-  };
-
-  const deleteAlertViaServer = async (alertId: string) => {
+  const deleteAlertViaServer = async (alertId: string, action: 'delete' | 'replace' = 'delete', details?: string) => {
     const token = await auth.currentUser?.getIdToken();
     if (!token) {
       throw new Error('Não foi possível autenticar a exclusão.');
@@ -1472,7 +1450,7 @@ export default function App() {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ alertId }),
+      body: JSON.stringify({ alertId, action, details }),
     });
 
     const data = await response.json().catch(() => ({}));
@@ -1485,8 +1463,7 @@ export default function App() {
 
   const deleteAlertWithAudit = async (alert: any, action: 'delete' | 'replace', details?: string) => {
     if (!alert?.id) return;
-    await logAlertAudit(action, alert, details);
-    await deleteAlertViaServer(String(alert.id));
+    await deleteAlertViaServer(String(alert.id), action, details);
   };
 
   const deleteSpecialSchedule = async (id: string) => {
@@ -1777,7 +1754,7 @@ export default function App() {
     try {
       const alertSnapshot = await getDoc(doc(db, 'alerts', id));
       const alertData = alertSnapshot.exists() ? { id, ...(alertSnapshot.data() as any) } : { id };
-      await deleteAlertWithAudit(alertData, 'delete', 'Exclusão manual pela interface.');
+      await deleteAlertViaServer(String(alertData.id), 'delete', 'Exclusão manual pela interface.');
       showToast("Alerta removido.");
     } catch (e) { 
       handleFirestoreError(e, OperationType.DELETE, `alerts/${id}`);
